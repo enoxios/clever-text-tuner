@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import UploadZone from '@/components/UploadZone';
@@ -37,23 +36,19 @@ const LektoratPage = () => {
   const [changes, setChanges] = useState<ChangeItem[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Handle file selection
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
     setFileName(selectedFile.name);
     setProgress(10);
     
     try {
-      // Extract text from Word document
       const text = await extractTextFromDocx(selectedFile);
       setProgress(100);
       
-      // Update document text and stats
       setDocumentText(text);
       const stats = calculateDocumentStats(text);
       setDocumentStats(stats);
       
-      // If the text is very long, automatically suggest minimal mode
       if (stats.status === 'warning' || stats.status === 'critical') {
         setEditingMode('nurKorrektur');
       }
@@ -66,7 +61,6 @@ const LektoratPage = () => {
     }
   };
 
-  // Handle removing the file
   const handleRemoveFile = () => {
     setFile(null);
     setFileName('');
@@ -79,7 +73,6 @@ const LektoratPage = () => {
       statusText: 'Akzeptable Länge'
     });
     
-    // Reset results if they're showing
     if (showResults) {
       setShowResults(false);
       setEditedText('');
@@ -88,23 +81,19 @@ const LektoratPage = () => {
     }
   };
 
-  // Handle text changes in the editor
   const handleTextChange = (text: string) => {
     setDocumentText(text);
     setDocumentStats(calculateDocumentStats(text));
   };
 
-  // Handle mode changes
   const handleModeChange = (mode: 'standard' | 'nurKorrektur') => {
     setEditingMode(mode);
   };
 
-  // Handle model changes
   const handleModelChange = (model: string) => {
     setSelectedModel(model);
   };
 
-  // Process text with selected model and mode
   const processText = async () => {
     if (!documentText.trim()) {
       toast.error('Kein Text zum Lektorieren vorhanden');
@@ -116,16 +105,10 @@ const LektoratPage = () => {
     setError(null);
     
     try {
-      // In a real application, this would be an API call to a language model
-      // Here we simulate the API call and response
-      
-      // Generate the prompt based on mode
       const prompt = generatePrompt(documentText, editingMode, selectedModel);
       
-      // Simulate API call with a delay
       setTimeout(() => {
         try {
-          // Simulate different responses based on the mode
           let simulatedResponse = '';
           
           if (editingMode === 'standard') {
@@ -160,7 +143,6 @@ KATEGORIE: Rechtschreibung und Grammatik
 - "blos" zu "bloß" korrigiert (korrekte Schreibweise).`;
           }
           
-          // Process the response
           const result = processLektoratResponse(simulatedResponse);
           setEditedText(removeMarkdown(result.text));
           setChanges(result.changes);
@@ -185,7 +167,6 @@ KATEGORIE: Rechtschreibung und Grammatik
       <h1 className="text-2xl md:text-3xl font-bold mb-8 text-center">GNB KI-Lektorat</h1>
       
       <div className="space-y-8">
-        {/* Main Content Card */}
         <div className="card glass-card p-6 rounded-xl shadow-sm">
           <EditingTools 
             onModeChange={handleModeChange} 
@@ -223,7 +204,6 @@ KATEGORIE: Rechtschreibung und Grammatik
           )}
         </div>
         
-        {/* Results Card */}
         {showResults && (
           <div className="card glass-card p-6 rounded-xl shadow-sm">
             <h2 className="text-xl font-semibold mb-4">Lektorierter Text</h2>
@@ -232,6 +212,7 @@ KATEGORIE: Rechtschreibung und Grammatik
               editedText={editedText}
               changes={changes}
               error={error}
+              fileName={fileName.replace(/\.docx$/, '') || 'lektorierter-text'}
             />
           </div>
         )}

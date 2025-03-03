@@ -1,18 +1,20 @@
 
 import { useState, useEffect } from 'react';
-import { Copy, CheckCircle2, AlertCircle } from 'lucide-react';
-import { ChangeItem } from '@/utils/documentUtils';
+import { Copy, CheckCircle2, AlertCircle, FileDown } from 'lucide-react';
+import { ChangeItem, downloadWordDocument } from '@/utils/documentUtils';
 
 interface ResultViewProps {
   isLoading: boolean;
   editedText: string;
   changes: ChangeItem[];
   error: string | null;
+  fileName?: string;
 }
 
-const ResultView = ({ isLoading, editedText, changes, error }: ResultViewProps) => {
+const ResultView = ({ isLoading, editedText, changes, error, fileName = 'lektorierter-text' }: ResultViewProps) => {
   const [activeTab, setActiveTab] = useState<'text' | 'changes'>('text');
   const [isCopied, setIsCopied] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   
   useEffect(() => {
     if (isCopied) {
@@ -27,6 +29,17 @@ const ResultView = ({ isLoading, editedText, changes, error }: ResultViewProps) 
   const handleCopyText = () => {
     navigator.clipboard.writeText(editedText);
     setIsCopied(true);
+  };
+  
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+      await downloadWordDocument(editedText, changes, fileName);
+    } catch (err) {
+      console.error('Download error:', err);
+    } finally {
+      setIsDownloading(false);
+    }
   };
   
   if (isLoading) {
@@ -104,7 +117,25 @@ const ResultView = ({ isLoading, editedText, changes, error }: ResultViewProps) 
         </div>
       </div>
       
-      <div className="mt-4 flex justify-end">
+      <div className="mt-4 flex justify-end gap-2">
+        <button 
+          onClick={handleDownload}
+          className="flex items-center gap-2 bg-gnb-primary hover:bg-gnb-secondary text-white py-2 px-4 rounded-md font-medium transition-colors"
+          disabled={isDownloading}
+        >
+          {isDownloading ? (
+            <>
+              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+              Wird heruntergeladen...
+            </>
+          ) : (
+            <>
+              <FileDown className="h-4 w-4" />
+              Als Word herunterladen
+            </>
+          )}
+        </button>
+        
         <button 
           onClick={handleCopyText}
           className="flex items-center gap-2 bg-muted hover:bg-muted/80 text-foreground py-2 px-4 rounded-md font-medium transition-colors"

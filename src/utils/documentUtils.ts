@@ -1,4 +1,5 @@
 import mammoth from 'mammoth';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 export interface DocumentStats {
   charCount: number;
@@ -244,4 +245,125 @@ ${text}`;
   }
   
   return `@${model} ${promptText}`;
+};
+
+// Function to generate a Word document from lektorat results
+export const generateWordDocument = async (
+  editedText: string, 
+  changes: ChangeItem[]
+): Promise<Blob> => {
+  // Create a new document
+  const doc = new Document({
+    sections: [
+      {
+        properties: {},
+        children: [
+          // Add the edited text first
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: 'Lektorierter Text',
+                bold: true,
+                size: 28,
+              }),
+            ],
+          }),
+          new Paragraph({
+            children: [new TextRun('')]
+          }),
+          // Split the text into paragraphs
+          ...editedText.split('\n\n').map(paragraph => 
+            new Paragraph({
+              children: [
+                new TextRun(paragraph)
+              ],
+            })
+          ),
+          
+          // Add a page break before the changes
+          new Paragraph({
+            children: [new TextRun({ text: '', break: 1 })],
+          }),
+          
+          // Add the changes section
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: 'Vorgenommene Änderungen',
+                bold: true,
+                size: 28,
+              }),
+            ],
+          }),
+          new Paragraph({
+            children: [new TextRun('')]
+          }),
+        ],
+      },
+    ],
+  });
+  
+  // Add all changes with categories
+  let currentCategory = '';
+  changes.forEach(change => {
+    if (change.isCategory) {
+      currentCategory = change.text;
+      doc.addSection({
+        children: [
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: currentCategory,
+                bold: true,
+                size: 24,
+              }),
+            ],
+          }),
+        ],
+      });
+    } else {
+      doc.addParagraph(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `• ${change.text}`,
+            }),
+          ],
+        })
+      );
+    }
+  });
+  
+  // Generate the document as a blob
+  return Packer.toBlob(doc);
+};
+
+// Helper function to download the Word document
+export const downloadWordDocument = async (
+  editedText: string, 
+  changes: ChangeItem[], 
+  fileName = 'lektorierter-text'
+): Promise<void> => {
+  try {
+    const blob = await generateWordDocument(editedText, changes);
+    
+    // Create a URL for the blob
+    const url = URL.createObjectURL(blob);
+    
+    // Create a temporary link element to trigger the download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${fileName}.docx`;
+    
+    // Trigger the download
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error generating Word document:', error);
+    throw error;
+  }
 };
