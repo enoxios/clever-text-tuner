@@ -1,5 +1,5 @@
 import mammoth from 'mammoth';
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType } from 'docx';
 
 export interface DocumentStats {
   charCount: number;
@@ -252,33 +252,64 @@ export const generateWordDocument = async (
   editedText: string, 
   changes: ChangeItem[]
 ): Promise<Blob> => {
-  // Create a new document
+  // Create paragraphs from the edited text
+  const textParagraphs = editedText.split('\n\n').map(paragraph => 
+    new Paragraph({
+      children: [
+        new TextRun(paragraph)
+      ],
+    })
+  );
+
+  // Create paragraphs for the changes
+  const changeParagraphs: Paragraph[] = [];
+  let currentCategory = '';
+
+  changes.forEach(change => {
+    if (change.isCategory) {
+      currentCategory = change.text;
+      changeParagraphs.push(
+        new Paragraph({
+          text: currentCategory,
+          heading: HeadingLevel.HEADING_2,
+          spacing: {
+            after: 200,
+          },
+        })
+      );
+    } else {
+      changeParagraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `• ${change.text}`,
+            }),
+          ],
+          spacing: {
+            after: 120,
+          },
+        })
+      );
+    }
+  });
+
+  // Create a new document with all content in appropriate sections
   const doc = new Document({
     sections: [
       {
-        properties: {},
+        properties: {
+          type: SectionType.CONTINUOUS,
+        },
         children: [
           // Add the edited text first
           new Paragraph({
-            children: [
-              new TextRun({
-                text: 'Lektorierter Text',
-                bold: true,
-                size: 28,
-              }),
-            ],
+            text: 'Lektorierter Text',
+            heading: HeadingLevel.HEADING_1,
+            spacing: {
+              after: 200,
+            },
           }),
-          new Paragraph({
-            children: [new TextRun('')]
-          }),
-          // Split the text into paragraphs
-          ...editedText.split('\n\n').map(paragraph => 
-            new Paragraph({
-              children: [
-                new TextRun(paragraph)
-              ],
-            })
-          ),
+          ...textParagraphs,
           
           // Add a page break before the changes
           new Paragraph({
@@ -287,51 +318,16 @@ export const generateWordDocument = async (
           
           // Add the changes section
           new Paragraph({
-            children: [
-              new TextRun({
-                text: 'Vorgenommene Änderungen',
-                bold: true,
-                size: 28,
-              }),
-            ],
+            text: 'Vorgenommene Änderungen',
+            heading: HeadingLevel.HEADING_1,
+            spacing: {
+              after: 200,
+            },
           }),
-          new Paragraph({
-            children: [new TextRun('')]
-          }),
+          ...changeParagraphs,
         ],
       },
     ],
-  });
-  
-  // Add all changes with categories
-  let currentCategory = '';
-  changes.forEach(change => {
-    if (change.isCategory) {
-      currentCategory = change.text;
-      doc.addSection({
-        children: [
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: currentCategory,
-                bold: true,
-                size: 24,
-              }),
-            ],
-          }),
-        ],
-      });
-    } else {
-      doc.addParagraph(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `• ${change.text}`,
-            }),
-          ],
-        })
-      );
-    }
   });
   
   // Generate the document as a blob
