@@ -1,20 +1,37 @@
 
 import { useState, useEffect } from 'react';
-import { Copy, CheckCircle2, AlertCircle, FileDown } from 'lucide-react';
+import { Copy, CheckCircle2, AlertCircle, FileDown, List, FileText } from 'lucide-react';
 import { ChangeItem, downloadWordDocument } from '@/utils/documentUtils';
+import { compareTexts, type TextDifference } from '@/utils/compareUtils';
 
 interface ResultViewProps {
   isLoading: boolean;
+  originalText: string;
   editedText: string;
   changes: ChangeItem[];
   error: string | null;
   fileName?: string;
 }
 
-const ResultView = ({ isLoading, editedText, changes, error, fileName = 'lektorierter-text' }: ResultViewProps) => {
-  const [activeTab, setActiveTab] = useState<'text' | 'changes'>('text');
+const ResultView = ({ 
+  isLoading, 
+  originalText, 
+  editedText, 
+  changes, 
+  error, 
+  fileName = 'lektorierter-text' 
+}: ResultViewProps) => {
+  const [activeTab, setActiveTab] = useState<'text' | 'changes' | 'comparison'>('text');
   const [isCopied, setIsCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [differences, setDifferences] = useState<TextDifference[]>([]);
+  
+  useEffect(() => {
+    if (originalText && editedText) {
+      const diffs = compareTexts(originalText, editedText);
+      setDifferences(diffs);
+    }
+  }, [originalText, editedText]);
   
   useEffect(() => {
     if (isCopied) {
@@ -69,19 +86,30 @@ const ResultView = ({ isLoading, editedText, changes, error, fileName = 'lektori
     <div className="animate-fade-in">
       <div className="flex border-b mb-4">
         <button 
-          className={`py-2 px-4 font-medium border-b-2 transition-colors ${
+          className={`py-2 px-4 font-medium border-b-2 transition-colors flex items-center ${
             activeTab === 'text' ? 'border-gnb-primary' : 'border-transparent hover:border-gnb-primary/50'
           }`}
           onClick={() => setActiveTab('text')}
         >
+          <FileText className="h-4 w-4 mr-2" />
           Lektorierter Text
         </button>
         <button 
-          className={`py-2 px-4 font-medium border-b-2 transition-colors ${
+          className={`py-2 px-4 font-medium border-b-2 transition-colors flex items-center ${
+            activeTab === 'comparison' ? 'border-gnb-primary' : 'border-transparent hover:border-gnb-primary/50'
+          }`}
+          onClick={() => setActiveTab('comparison')}
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          Textvergleich
+        </button>
+        <button 
+          className={`py-2 px-4 font-medium border-b-2 transition-colors flex items-center ${
             activeTab === 'changes' ? 'border-gnb-primary' : 'border-transparent hover:border-gnb-primary/50'
           }`}
           onClick={() => setActiveTab('changes')}
         >
+          <List className="h-4 w-4 mr-2" />
           Änderungen
         </button>
       </div>
@@ -93,6 +121,34 @@ const ResultView = ({ isLoading, editedText, changes, error, fileName = 'lektori
           value={editedText}
           readOnly
         />
+      </div>
+      
+      <div className={activeTab === 'comparison' ? '' : 'hidden'}>
+        <div className="border rounded-lg p-3 h-[300px] overflow-auto bg-background">
+          <div className="space-y-2">
+            {differences.map((diff, index) => (
+              <span 
+                key={index} 
+                className={`
+                  ${diff.added ? 'bg-green-100 text-green-800' : ''} 
+                  ${diff.removed ? 'bg-red-100 text-red-800 line-through' : ''}
+                `}
+              >
+                {diff.value}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="mt-2 flex items-center text-sm space-x-4">
+          <div className="flex items-center">
+            <span className="inline-block w-3 h-3 bg-red-100 mr-1"></span>
+            <span className="text-muted-foreground">Gelöschter Text</span>
+          </div>
+          <div className="flex items-center">
+            <span className="inline-block w-3 h-3 bg-green-100 mr-1"></span>
+            <span className="text-muted-foreground">Hinzugefügter Text</span>
+          </div>
+        </div>
       </div>
       
       <div className={activeTab === 'changes' ? '' : 'hidden'}>

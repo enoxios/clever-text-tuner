@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import UploadZone from '@/components/UploadZone';
@@ -20,6 +21,7 @@ const LektoratPage = () => {
   const [fileName, setFileName] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
   const [documentText, setDocumentText] = useState<string>('');
+  const [originalText, setOriginalText] = useState<string>(''); // Store original text for comparison
   const [documentStats, setDocumentStats] = useState<DocumentStatsType>({
     charCount: 0,
     wordCount: 0,
@@ -46,6 +48,7 @@ const LektoratPage = () => {
       setProgress(100);
       
       setDocumentText(text);
+      setOriginalText(text); // Save original text
       const stats = calculateDocumentStats(text);
       setDocumentStats(stats);
       
@@ -66,6 +69,7 @@ const LektoratPage = () => {
     setFileName('');
     setProgress(0);
     setDocumentText('');
+    setOriginalText('');
     setDocumentStats({
       charCount: 0,
       wordCount: 0,
@@ -209,6 +213,7 @@ KATEGORIE: Rechtschreibung und Grammatik
             <h2 className="text-xl font-semibold mb-4">Lektorierter Text</h2>
             <ResultView 
               isLoading={isProcessing}
+              originalText={originalText}
               editedText={editedText}
               changes={changes}
               error={error}
