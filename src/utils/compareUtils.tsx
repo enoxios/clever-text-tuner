@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { diffWords } from 'diff';
 
 export interface TextDifference {
