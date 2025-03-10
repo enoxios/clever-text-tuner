@@ -29,8 +29,8 @@ const EditingTools = ({
   const getModelDescription = (model: string): string => {
     const descriptions: Record<string, string> = {
       'gpt-4o': 'Aktuellstes OpenAI-Modell mit höchster Qualität',
-      'gpt-3.5-turbo': 'Schnellere Verarbeitung, etwas geringere Qualität',
-      'gpt-4-turbo': 'Guter Kompromiss zwischen Qualität und Geschwindigkeit'
+      'gpt-4o-mini': 'Schnelleres und kostengünstigeres Modell',
+      'gpt-4.5': 'Neues GPT-4.5 Modell mit verbesserter Leistung'
     };
     
     return descriptions[model] || `${model}: Ausgewähltes KI-Modell für das Lektorat.`;
@@ -110,8 +110,8 @@ const EditingTools = ({
             value={activeModel}
           >
             <option value="gpt-4o">GPT-4o (Empfohlen)</option>
-            <option value="gpt-4-turbo">GPT-4 Turbo</option>
-            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+            <option value="gpt-4o-mini">GPT-4o Mini</option>
+            <option value="gpt-4.5">GPT-4.5</option>
           </select>
           <p className="text-sm text-muted-foreground mt-1">
             {getModelDescription(activeModel)}
