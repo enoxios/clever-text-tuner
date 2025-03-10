@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import UploadZone from '@/components/UploadZone';
@@ -15,6 +14,7 @@ import {
   type DocumentStats as DocumentStatsType,
   type ChangeItem
 } from '@/utils/documentUtils';
+import { callOpenAI } from '@/utils/openAIService';
 
 const LektoratPage = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -30,13 +30,15 @@ const LektoratPage = () => {
   });
   
   const [editingMode, setEditingMode] = useState<'standard' | 'nurKorrektur'>('standard');
-  const [selectedModel, setSelectedModel] = useState<string>('Claude-3.7-Sonnet');
+  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o');
   
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [showResults, setShowResults] = useState<boolean>(false);
   const [editedText, setEditedText] = useState<string>('');
   const [changes, setChanges] = useState<ChangeItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string>('');
+  const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(false);
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -98,9 +100,19 @@ const LektoratPage = () => {
     setSelectedModel(model);
   };
 
+  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setApiKey(e.target.value);
+  };
+
   const processText = async () => {
     if (!documentText.trim()) {
       toast.error('Kein Text zum Lektorieren vorhanden');
+      return;
+    }
+
+    if (!apiKey.trim()) {
+      setShowApiKeyInput(true);
+      toast.info('Bitte geben Sie Ihren OpenAI API-Schlüssel ein');
       return;
     }
     
@@ -111,57 +123,24 @@ const LektoratPage = () => {
     try {
       const prompt = generatePrompt(documentText, editingMode, selectedModel);
       
-      setTimeout(() => {
-        try {
-          let simulatedResponse = '';
-          
-          if (editingMode === 'standard') {
-            simulatedResponse = `LEKTORIERTER TEXT:
-${documentText.replace(/ist/g, 'wird').replace(/und/g, 'sowie').replace(/aber/g, 'jedoch')}
-
-ÄNDERUNGEN:
-KATEGORIE: Struktur und Logik
-- Absätze neu strukturiert für besseren Lesefluss.
-- Argumentationskette in Abschnitt 2 verstärkt durch klarere Übergänge.
-
-KATEGORIE: Stil
-- Passive Konstruktionen durch aktive ersetzt für mehr Direktheit.
-- Verschachtelte Sätze im dritten Teil vereinfacht für bessere Lesbarkeit.
-
-KATEGORIE: Wortwahl
-- "ist" durch "wird" ersetzt, um Dynamik zu steigern.
-- "und" durch "sowie" ersetzt für sprachliche Vielfalt.
-- "aber" durch "jedoch" ersetzt für formelleren Ton.
-
-KATEGORIE: Ton und Perspektive
-- Einheitliche Perspektive in der dritten Person sichergestellt.
-- Konsistenten Formalitätsgrad über das gesamte Dokument gewahrt.`;
-          } else {
-            simulatedResponse = `LEKTORIERTER TEXT:
-${documentText.replace(/daß/g, 'dass').replace(/muß/g, 'muss').replace(/blos/g, 'bloß')}
-
-ÄNDERUNGEN:
-KATEGORIE: Rechtschreibung und Grammatik
-- "daß" durch "dass" ersetzt (neue Rechtschreibung).
-- "muß" durch "muss" korrigiert (neue Rechtschreibung).
-- "blos" zu "bloß" korrigiert (korrekte Schreibweise).`;
-          }
-          
-          const result = processLektoratResponse(simulatedResponse);
-          setEditedText(removeMarkdown(result.text));
-          setChanges(result.changes);
-          setIsProcessing(false);
-          
-        } catch (error) {
-          console.error('Error processing text:', error);
-          setError('Ein Fehler ist beim Verarbeiten des Textes aufgetreten.');
-          setIsProcessing(false);
-        }
-      }, 3000);
+      const apiResponse = await callOpenAI(prompt, apiKey);
       
+      if (apiResponse) {
+        const result = processLektoratResponse(`LEKTORIERTER TEXT:
+${apiResponse.text}
+
+ÄNDERUNGEN:
+${apiResponse.changes}`);
+        
+        setEditedText(removeMarkdown(result.text));
+        setChanges(result.changes);
+      } else {
+        setError('Keine Antwort von der API erhalten');
+      }
     } catch (err) {
       console.error('Error processing text:', err);
-      setError('Ein Fehler ist beim Lektorieren aufgetreten.');
+      setError(`Ein Fehler ist beim Lektorieren aufgetreten: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
+    } finally {
       setIsProcessing(false);
     }
   };
@@ -177,6 +156,25 @@ KATEGORIE: Rechtschreibung und Grammatik
             onModelChange={handleModelChange}
             disabled={isProcessing}
           />
+          
+          {showApiKeyInput && (
+            <div className="mt-4 p-4 border rounded-lg bg-muted/30">
+              <label htmlFor="apiKey" className="block text-sm font-medium mb-1">
+                OpenAI API-Schlüssel:
+              </label>
+              <input
+                id="apiKey"
+                type="password"
+                value={apiKey}
+                onChange={handleApiKeyChange}
+                className="w-full p-2 border rounded"
+                placeholder="sk-..."
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Ihr API-Schlüssel wird nicht gespeichert und nur für die aktuelle Sitzung verwendet.
+              </p>
+            </div>
+          )}
           
           {!file ? (
             <div className="mt-6">
@@ -197,13 +195,24 @@ KATEGORIE: Rechtschreibung und Grammatik
                 disabled={isProcessing}
               />
               
-              <button
-                className="w-full md:w-auto bg-gnb-primary hover:bg-gnb-secondary text-white py-2 px-6 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-                onClick={processText}
-                disabled={!documentText.trim() || isProcessing}
-              >
-                Text lektorieren
-              </button>
+              <div className="flex gap-4 mt-4">
+                <button
+                  className="flex-1 bg-gnb-primary hover:bg-gnb-secondary text-white py-2 px-6 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={processText}
+                  disabled={!documentText.trim() || isProcessing}
+                >
+                  Text lektorieren
+                </button>
+                
+                {!showApiKeyInput && (
+                  <button
+                    className="bg-transparent hover:bg-muted text-gnb-primary py-2 px-4 border border-gnb-primary rounded-lg font-medium transition-colors"
+                    onClick={() => setShowApiKeyInput(true)}
+                  >
+                    API-Schlüssel ändern
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>

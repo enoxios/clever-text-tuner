@@ -14,7 +14,7 @@ const EditingTools = ({
   disabled = false 
 }: EditingToolsProps) => {
   const [activeMode, setActiveMode] = useState<'standard' | 'nurKorrektur'>('standard');
-  const [activeModel, setActiveModel] = useState('Claude-3.7-Sonnet');
+  const [activeModel, setActiveModel] = useState('gpt-4o');
   
   const handleModeChange = (mode: 'standard' | 'nurKorrektur') => {
     setActiveMode(mode);
@@ -28,11 +28,9 @@ const EditingTools = ({
   
   const getModelDescription = (model: string): string => {
     const descriptions: Record<string, string> = {
-      'Claude-3.7-Sonnet': 'Ausgewogene Balance zwischen Qualität und Geschwindigkeit.',
-      'Gemini-2.0-Flash': 'Schnelles, effizientes Google-Modell für zeitkritische Anwendungen.',
-      'GPT-4o': 'OpenAIs fortschrittlichstes multimodales Modell.',
-      'Claude-3-Opus': 'Höchste Qualität, aber möglicherweise langsamer.',
-      'Claude-3-Haiku': 'Schnellstes Claude-Modell, kompromissbereitere Qualität.'
+      'gpt-4o': 'Aktuellstes OpenAI-Modell mit höchster Qualität',
+      'gpt-3.5-turbo': 'Schnellere Verarbeitung, etwas geringere Qualität',
+      'gpt-4-turbo': 'Guter Kompromiss zwischen Qualität und Geschwindigkeit'
     };
     
     return descriptions[model] || `${model}: Ausgewähltes KI-Modell für das Lektorat.`;
@@ -103,7 +101,7 @@ const EditingTools = ({
         </div>
         
         <div>
-          <label htmlFor="llm-selector" className="block mb-2 font-medium">KI-Modell auswählen:</label>
+          <label htmlFor="llm-selector" className="block mb-2 font-medium">OpenAI-Modell auswählen:</label>
           <select 
             id="llm-selector" 
             className="w-full p-2 border rounded-lg bg-background"
@@ -111,11 +109,9 @@ const EditingTools = ({
             disabled={disabled}
             value={activeModel}
           >
-            <option value="Claude-3.7-Sonnet">Claude 3.7 Sonnet (Empfohlen)</option>
-            <option value="Gemini-2.0-Flash">Gemini 2.0 Flash</option>
-            <option value="GPT-4o">GPT-4o</option>
-            <option value="Claude-3-Opus">Claude 3 Opus</option>
-            <option value="Claude-3-Haiku">Claude 3 Haiku</option>
+            <option value="gpt-4o">GPT-4o (Empfohlen)</option>
+            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
           </select>
           <p className="text-sm text-muted-foreground mt-1">
             {getModelDescription(activeModel)}
