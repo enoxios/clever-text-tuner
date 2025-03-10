@@ -5,16 +5,22 @@ import { Info } from 'lucide-react';
 interface EditingToolsProps {
   onModeChange: (mode: 'standard' | 'nurKorrektur') => void;
   onModelChange: (model: string) => void;
+  onSystemMessageChange?: (message: string) => void;
+  defaultSystemMessage?: string;
   disabled?: boolean;
 }
 
 const EditingTools = ({ 
   onModeChange, 
-  onModelChange, 
+  onModelChange,
+  onSystemMessageChange,
+  defaultSystemMessage = 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".',
   disabled = false 
 }: EditingToolsProps) => {
   const [activeMode, setActiveMode] = useState<'standard' | 'nurKorrektur'>('standard');
   const [activeModel, setActiveModel] = useState('gpt-4o');
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [systemMessage, setSystemMessage] = useState(defaultSystemMessage);
   
   const handleModeChange = (mode: 'standard' | 'nurKorrektur') => {
     setActiveMode(mode);
@@ -24,6 +30,13 @@ const EditingTools = ({
   const handleModelChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setActiveModel(event.target.value);
     onModelChange(event.target.value);
+  };
+  
+  const handleSystemMessageChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setSystemMessage(event.target.value);
+    if (onSystemMessageChange) {
+      onSystemMessageChange(event.target.value);
+    }
   };
   
   const getModelDescription = (model: string): string => {
@@ -117,6 +130,38 @@ const EditingTools = ({
             {getModelDescription(activeModel)}
           </p>
         </div>
+      </div>
+      
+      <div>
+        <div className="flex items-center justify-between">
+          <button 
+            type="button"
+            className="text-gnb-primary text-sm font-medium flex items-center gap-1"
+            onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+          >
+            {showAdvancedSettings ? 'Erweiterte Einstellungen ausblenden' : 'Erweiterte Einstellungen anzeigen'}
+          </button>
+        </div>
+        
+        {showAdvancedSettings && (
+          <div className="mt-4 p-4 border rounded-lg bg-muted/30">
+            <label htmlFor="systemMessage" className="block text-sm font-medium mb-1">
+              System-Prompt:
+            </label>
+            <textarea
+              id="systemMessage"
+              value={systemMessage}
+              onChange={handleSystemMessageChange}
+              className="w-full p-2 border rounded h-32 text-sm font-mono"
+              disabled={disabled}
+              placeholder="Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern..."
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Dieser Prompt bestimmt, wie das KI-Modell den Text bearbeiten soll. 
+              Die Ausgabe sollte immer mit "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:" formatiert sein.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

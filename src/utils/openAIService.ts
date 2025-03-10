@@ -8,9 +8,12 @@ interface OpenAIResponse {
 
 export const callOpenAI = async (
   prompt: string,
-  apiKey: string
+  apiKey: string,
+  customSystemMessage?: string
 ): Promise<OpenAIResponse | null> => {
   try {
+    const systemMessage = customSystemMessage || 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -22,7 +25,7 @@ export const callOpenAI = async (
         messages: [
           {
             role: 'system',
-            content: 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".'
+            content: systemMessage
           },
           {
             role: 'user',

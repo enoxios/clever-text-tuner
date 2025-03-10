@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import UploadZone from '@/components/UploadZone';
@@ -31,6 +32,7 @@ const LektoratPage = () => {
   
   const [editingMode, setEditingMode] = useState<'standard' | 'nurKorrektur'>('standard');
   const [selectedModel, setSelectedModel] = useState<string>('gpt-4o');
+  const [systemMessage, setSystemMessage] = useState<string>('Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".');
   
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [showResults, setShowResults] = useState<boolean>(false);
@@ -99,6 +101,10 @@ const LektoratPage = () => {
   const handleModelChange = (model: string) => {
     setSelectedModel(model);
   };
+  
+  const handleSystemMessageChange = (message: string) => {
+    setSystemMessage(message);
+  };
 
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setApiKey(e.target.value);
@@ -123,7 +129,7 @@ const LektoratPage = () => {
     try {
       const prompt = generatePrompt(documentText, editingMode, selectedModel);
       
-      const apiResponse = await callOpenAI(prompt, apiKey);
+      const apiResponse = await callOpenAI(prompt, apiKey, systemMessage);
       
       if (apiResponse) {
         const result = processLektoratResponse(`LEKTORIERTER TEXT:
@@ -154,6 +160,8 @@ ${apiResponse.changes}`);
           <EditingTools 
             onModeChange={handleModeChange} 
             onModelChange={handleModelChange}
+            onSystemMessageChange={handleSystemMessageChange}
+            defaultSystemMessage={systemMessage}
             disabled={isProcessing}
           />
           
