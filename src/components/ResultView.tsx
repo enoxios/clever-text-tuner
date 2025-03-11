@@ -152,23 +152,25 @@ const ResultView = ({
       </div>
       
       <div className={activeTab === 'changes' ? '' : 'hidden'}>
-        <div className="changes-list">
+        <div className="border rounded-lg p-3 h-[300px] overflow-auto bg-background">
           {changes.length === 0 ? (
             <p className="text-center py-4 italic text-muted-foreground">
               Keine Änderungen gefunden.
             </p>
           ) : (
-            changes.map((item, index) => (
-              item.isCategory ? (
-                <div key={index} className="category-header">
-                  {item.text}
-                </div>
-              ) : (
-                <div key={index} className="change-item">
-                  {item.text}
-                </div>
-              )
-            ))
+            <div className="space-y-3">
+              {changes.map((item, index) => (
+                item.isCategory ? (
+                  <div key={index} className="font-medium text-lg mt-4 text-gnb-primary border-b pb-1">
+                    {item.text}
+                  </div>
+                ) : (
+                  <div key={index} className="pl-4 border-l-2 border-muted py-1">
+                    • {item.text}
+                  </div>
+                )
+              ))}
+            </div>
           )}
         </div>
       </div>

@@ -53,6 +53,11 @@ export const callOpenAI = async (
     const textMatch = content.match(/LEKTORIERTER TEXT:\s*\n([\s\S]*?)(?=ÄNDERUNGEN:|$)/i);
     const changesMatch = content.match(/ÄNDERUNGEN:\s*\n([\s\S]*)/i);
 
+    // Log für Debugging
+    console.log('API Antwort:', content);
+    console.log('Extrahierter Text:', textMatch ? textMatch[1] : 'Nicht gefunden');
+    console.log('Extrahierte Änderungen:', changesMatch ? changesMatch[1] : 'Nicht gefunden');
+
     return {
       text: textMatch && textMatch[1] ? textMatch[1].trim() : content,
       changes: changesMatch && changesMatch[1] ? changesMatch[1].trim() : ''
