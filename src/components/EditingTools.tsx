@@ -7,6 +7,7 @@ interface EditingToolsProps {
   onModelChange: (model: string) => void;
   onSystemMessageChange?: (message: string) => void;
   defaultSystemMessage?: string;
+  initialMode?: 'standard' | 'nurKorrektur';
   disabled?: boolean;
 }
 
@@ -15,14 +16,17 @@ const EditingTools = ({
   onModelChange,
   onSystemMessageChange,
   defaultSystemMessage = 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".',
+  initialMode = 'standard',
   disabled = false 
 }: EditingToolsProps) => {
-  const [activeMode, setActiveMode] = useState<'standard' | 'nurKorrektur'>('standard');
+  const [activeMode, setActiveMode] = useState<'standard' | 'nurKorrektur'>(initialMode);
   const [activeModel, setActiveModel] = useState('gpt-4o');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [systemMessage, setSystemMessage] = useState(defaultSystemMessage);
   
   const handleModeChange = (mode: 'standard' | 'nurKorrektur') => {
+    if (disabled) return;
+    
     setActiveMode(mode);
     onModeChange(mode);
   };
@@ -92,21 +96,29 @@ const EditingTools = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block mb-2 font-medium">Lektorat-Modus:</label>
-          <div className="mode-selector">
-            <div 
-              className={`mode-option ${activeMode === 'standard' ? 'active' : ''}`}
-              onClick={() => !disabled && handleModeChange('standard')}
-              style={{ opacity: disabled ? 0.6 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}
+          <div className="mode-selector flex space-x-2">
+            <button 
+              className={`flex-1 py-2 px-4 rounded-md transition-colors ${
+                activeMode === 'standard' 
+                  ? 'bg-gnb-primary text-white' 
+                  : 'bg-muted hover:bg-muted/80 text-foreground'
+              }`}
+              onClick={() => handleModeChange('standard')}
+              disabled={disabled}
             >
               Standard
-            </div>
-            <div 
-              className={`mode-option ${activeMode === 'nurKorrektur' ? 'active' : ''}`}
-              onClick={() => !disabled && handleModeChange('nurKorrektur')}
-              style={{ opacity: disabled ? 0.6 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}
+            </button>
+            <button 
+              className={`flex-1 py-2 px-4 rounded-md transition-colors ${
+                activeMode === 'nurKorrektur' 
+                  ? 'bg-gnb-primary text-white' 
+                  : 'bg-muted hover:bg-muted/80 text-foreground'
+              }`}
+              onClick={() => handleModeChange('nurKorrektur')}
+              disabled={disabled}
             >
               Nur Korrektorat
-            </div>
+            </button>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             {getModeDescription(activeMode)}

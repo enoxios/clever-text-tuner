@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import UploadZone from '@/components/UploadZone';
@@ -95,6 +94,7 @@ const LektoratPage = () => {
   };
 
   const handleModeChange = (mode: 'standard' | 'nurKorrektur') => {
+    console.log('Mode changed to:', mode);
     setEditingMode(mode);
   };
 
@@ -162,6 +162,7 @@ ${apiResponse.changes}`);
             onModelChange={handleModelChange}
             onSystemMessageChange={handleSystemMessageChange}
             defaultSystemMessage={systemMessage}
+            initialMode={editingMode}
             disabled={isProcessing}
           />
           
