@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Info } from 'lucide-react';
 
 interface EditingToolsProps {
@@ -24,11 +24,34 @@ const EditingTools = ({
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [systemMessage, setSystemMessage] = useState(defaultSystemMessage);
   
+  // Systemprompfs für die verschiedenen Modi
+  const standardSystemMessage = 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Führe ein umfassendes Lektorat mit inhaltlicher und sprachlicher Überarbeitung durch. Achte auf Struktur, Logik, Stil und Wortwahl. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
+  
+  const nurKorrekturSystemMessage = 'Du bist ein professioneller Korrektor und hilfst dabei, Texte zu korrigieren. Korrigiere ausschließlich Rechtschreibung, Grammatik und Zeichensetzung, ohne den Stil oder Inhalt zu verändern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
+  
+  // Aktualisiere den Systemprompf, wenn sich der Modus ändert
+  useEffect(() => {
+    const newSystemMessage = activeMode === 'standard' ? standardSystemMessage : nurKorrekturSystemMessage;
+    setSystemMessage(newSystemMessage);
+    
+    if (onSystemMessageChange) {
+      onSystemMessageChange(newSystemMessage);
+    }
+  }, [activeMode, onSystemMessageChange]);
+  
   const handleModeChange = (mode: 'standard' | 'nurKorrektur') => {
     if (disabled) return;
     
     setActiveMode(mode);
     onModeChange(mode);
+    
+    // Setze den entsprechenden Systemprompf
+    const newSystemMessage = mode === 'standard' ? standardSystemMessage : nurKorrekturSystemMessage;
+    setSystemMessage(newSystemMessage);
+    
+    if (onSystemMessageChange) {
+      onSystemMessageChange(newSystemMessage);
+    }
   };
   
   const handleModelChange = (event: React.ChangeEvent<HTMLSelectElement>) => {

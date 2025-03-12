@@ -12,7 +12,11 @@ export const callOpenAI = async (
   customSystemMessage?: string
 ): Promise<OpenAIResponse | null> => {
   try {
+    // Standardwert für den System-Message
     const systemMessage = customSystemMessage || 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
+    
+    // Log für Debugging
+    console.log('Using system message:', systemMessage);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
