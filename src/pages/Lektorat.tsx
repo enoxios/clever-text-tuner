@@ -153,7 +153,14 @@ ${apiResponse.changes}`);
 
   return (
     <div className="min-h-screen py-6 md:py-10 px-4 md:px-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl md:text-3xl font-bold mb-8 text-center">GNB KI-Lektorat</h1>
+      <div className="flex items-center justify-center gap-3 mb-8">
+        <img 
+          src="/lovable-uploads/de5492db-ff63-4dc7-9286-f72e78d8d16a.png" 
+          alt="GNB Logo" 
+          className="h-10 md:h-12" 
+        />
+        <h1 className="text-2xl md:text-3xl font-bold text-center">GNB KI-Lektorat</h1>
+      </div>
       
       <div className="space-y-8">
         <div className="card glass-card p-6 rounded-xl shadow-sm">
@@ -210,7 +217,7 @@ ${apiResponse.changes}`);
                   onClick={processText}
                   disabled={!documentText.trim() || isProcessing}
                 >
-                  Text lektorieren
+                  KI Lektorat starten
                 </button>
                 
                 {!showApiKeyInput && (
