@@ -61,6 +61,8 @@ Einleitungssatz: Starte jedes Teilrezept mit einer einleitenden Phrase.
 Schreibstil: Achte auf einen vielfältigen Wortschatz, verwende Synonyme, um Wortdopplungen zu umgehen.
 Abkürzungen: Maßeinheiten werden in der Kurzschreibweise angegeben. Alle anderen Begriffe nicht. Beispielsweise schreiben wir statt „ca." im Zubereitungstext „etwa".
 
+WICHTIG! Achte darauf Formatierung und Fettungen möglichst beizubehalten
+
 Wichtige Regeln:
 - "Karotten" statt "Möhren"
 - "Gewürznelken" statt nur "Nelken"
