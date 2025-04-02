@@ -29,7 +29,7 @@ const LektoratPage = () => {
     statusText: 'Akzeptable Länge'
   });
   
-  const [editingMode, setEditingMode] = useState<'standard' | 'nurKorrektur'>('standard');
+  const [editingMode, setEditingMode] = useState<'standard' | 'nurKorrektur' | 'kochbuch'>('standard');
   const [selectedModel, setSelectedModel] = useState<string>('gpt-4o');
   const [systemMessage, setSystemMessage] = useState<string>('Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".');
   
@@ -93,7 +93,7 @@ const LektoratPage = () => {
     setDocumentStats(calculateDocumentStats(text));
   };
 
-  const handleModeChange = (mode: 'standard' | 'nurKorrektur') => {
+  const handleModeChange = (mode: 'standard' | 'nurKorrektur' | 'kochbuch') => {
     console.log('Mode changed to:', mode);
     setEditingMode(mode);
   };

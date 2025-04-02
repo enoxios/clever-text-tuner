@@ -1,13 +1,13 @@
 
 import { useState, useEffect } from 'react';
-import { Info } from 'lucide-react';
+import { Info, ChevronDown } from 'lucide-react';
 
 interface EditingToolsProps {
-  onModeChange: (mode: 'standard' | 'nurKorrektur') => void;
+  onModeChange: (mode: 'standard' | 'nurKorrektur' | 'kochbuch') => void;
   onModelChange: (model: string) => void;
   onSystemMessageChange?: (message: string) => void;
   defaultSystemMessage?: string;
-  initialMode?: 'standard' | 'nurKorrektur';
+  initialMode?: 'standard' | 'nurKorrektur' | 'kochbuch';
   disabled?: boolean;
 }
 
@@ -19,19 +19,76 @@ const EditingTools = ({
   initialMode = 'standard',
   disabled = false 
 }: EditingToolsProps) => {
-  const [activeMode, setActiveMode] = useState<'standard' | 'nurKorrektur'>(initialMode);
+  const [activeMode, setActiveMode] = useState<'standard' | 'nurKorrektur' | 'kochbuch'>(initialMode);
   const [activeModel, setActiveModel] = useState('gpt-4o');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [systemMessage, setSystemMessage] = useState(defaultSystemMessage);
+  const [showModeDropdown, setShowModeDropdown] = useState(false);
   
   // Systemprompfs für die verschiedenen Modi
   const standardSystemMessage = 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Führe ein umfassendes Lektorat mit inhaltlicher und sprachlicher Überarbeitung durch. Achte auf Struktur, Logik, Stil und Wortwahl. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
   
   const nurKorrekturSystemMessage = 'Du bist ein professioneller Korrektor und hilfst dabei, Texte zu korrigieren. Korrigiere ausschließlich Rechtschreibung, Grammatik und Zeichensetzung, ohne den Stil oder Inhalt zu verändern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
   
+  const kochbuchSystemMessage = `Nehme die Rolle eines erfahrenen Rezeptredakteurs ein, um Rezepte hinsichtlich ihrer Genauigkeit und Qualität zu überprüfen und zu verbessern.
+ 
+Teil 1: Überprüfung der Zutatenlisten
+Kein Doppelpunkt nach Überschriften und Zwischenüberschriften: Entferne nach Überschriften (auch Zwischenüberschriften wie "Zutaten", "Anrichten", "Für den Teig" Doppelpunkte.
+Reihenfolge der Zutaten: Vergewissere dich, dass die Zutaten in der Reihenfolge aufgeführt sind, in der sie im Rezepttext zuerst erwähnt werden. Es ist nur entscheiden, wann die einzelne Zutat erstmals im Zubereitungstext erwähnt werden.
+Zuordnung zu Teilrezepten: Achte auf Zwischenüberschriften in Fettschrift ohne Satzzeichen am Ende und ordne die Zutaten entsprechend zu.
+Reihenfolge der Teilrezepte: Sortiere die Teilrezepte in der Reihenfolge an, wie sie im Zubereitungstext nacheinander bearbeitet werden.
+Rechtschreibung und Grammatik: Überprüfe die Texte gemäß der deutschen Duden-Rechtschreibung und korrigiere Fehler.
+Mengenangaben: Ersetze Bindestriche durch Halbgeviert-Striche bei Mengenangaben und korrigiere bei Bedarf.
+Adjektive und Adverbien: Stelle sicher, dass diese am Zeilenanfang kleingeschrieben werden.
+Fehlende Zutaten: Füge fehlende Zutaten in die Liste ein und kennzeichne sie mit "XX" als Platzhalter für die Menge. Stelle sie an die Position, in der sie im Zubereitungstext vorkommen.
+Bruchzahlen: Achte darauf, dass Bruchzahlen als Zähler/Nenner (z.B. 1/2) dargestellt werden.
+Liste: Verwende keine Bullet Points, die Zutaten werden ohne diese aufgelistet.
+Wasser: Wasser wird in der Zutatenliste nicht erwähnt, die Mengenangabe steht im Zubereitungstext.
+ 
+Teil 2: Überprüfung der Zubereitungstexte
+Kein Doppelpunkt nach Überschriften und Zwischenüberschriften: Entferne nach Überschriften Doppelpunkte.
+Rechtschreibung und Grammatik: Korrigiere alle gefundenen Fehler in der Rechtschreibung, Grammatik und Zeichensetzung.
+Temperaturangaben: Ändere "Hitze" zu "Temperatur".
+Von-Bis-Angaben: Prüfe die korrekte Verwendung des Halbgeviert-Strichs und korrigiere, wo nötig.
+Anführungszeichen: Ersetze alle nicht französischen Anführungszeichen durch französische.
+Schreibweise von "Soße": Korrigiere alle Vorkommen mit ß zu "Sauce".
+Stichwortartige Sätze: Formuliere sie in vollständige Sätze um, um sie ansprechender zu gestalten.
+Artikel bei Zutaten: Füge bei jeder Zutat im Text den bestimmten Artikel hinzu. Achte auf den korrekten Kasus.
+Gliederung in Absätze: Teile die Zubereitungsschritte in Absätze auf, ohne sie zu nummerieren.
+Maßeinheiten: Maßeinheiten wie EL, TL, g, kg, °C werden immer in der Kurzschreibweise angegeben.
+Zahlen: Zahlen und Ziffern werden nur vor Maßeinheiten in Ziffern angegeben. In allen anderen Fällen werden Zahlen ausgeschrieben.
+Einleitungssatz: Starte jedes Teilrezept mit einer einleitenden Phrase.
+Schreibstil: Achte auf einen vielfältigen Wortschatz, verwende Synonyme, um Wortdopplungen zu umgehen.
+Abkürzungen: Maßeinheiten werden in der Kurzschreibweise angegeben. Alle anderen Begriffe nicht. Beispielsweise schreiben wir statt „ca." im Zubereitungstext „etwa".
+
+Wichtige Regeln:
+- "Karotten" statt "Möhren"
+- "Gewürznelken" statt nur "Nelken"
+- Bei Singular in der Zutatenliste auch im Zubereitungstext Singular verwenden
+- Keine Bullet Points, keine Nummerierung
+- Keine Fettungen, wenn nicht im Original
+- Wasser nur im Zubereitungstext nennen
+
+Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".`;
+  
   // Aktualisiere den Systemprompf, wenn sich der Modus ändert
   useEffect(() => {
-    const newSystemMessage = activeMode === 'standard' ? standardSystemMessage : nurKorrekturSystemMessage;
+    let newSystemMessage;
+    
+    switch(activeMode) {
+      case 'standard':
+        newSystemMessage = standardSystemMessage;
+        break;
+      case 'nurKorrektur':
+        newSystemMessage = nurKorrekturSystemMessage;
+        break;
+      case 'kochbuch':
+        newSystemMessage = kochbuchSystemMessage;
+        break;
+      default:
+        newSystemMessage = standardSystemMessage;
+    }
+    
     setSystemMessage(newSystemMessage);
     
     if (onSystemMessageChange) {
@@ -39,19 +96,14 @@ const EditingTools = ({
     }
   }, [activeMode, onSystemMessageChange]);
   
-  const handleModeChange = (mode: 'standard' | 'nurKorrektur') => {
+  const handleModeChange = (mode: 'standard' | 'nurKorrektur' | 'kochbuch') => {
     if (disabled) return;
     
     setActiveMode(mode);
     onModeChange(mode);
+    setShowModeDropdown(false);
     
-    // Setze den entsprechenden Systemprompf
-    const newSystemMessage = mode === 'standard' ? standardSystemMessage : nurKorrekturSystemMessage;
-    setSystemMessage(newSystemMessage);
-    
-    if (onSystemMessageChange) {
-      onSystemMessageChange(newSystemMessage);
-    }
+    // Systemprompf wird durch useEffect aktualisiert
   };
   
   const handleModelChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -76,13 +128,24 @@ const EditingTools = ({
     return descriptions[model] || `${model}: Ausgewähltes KI-Modell für das Lektorat.`;
   };
   
-  const getModeDescription = (mode: 'standard' | 'nurKorrektur'): string => {
+  const getModeDescription = (mode: 'standard' | 'nurKorrektur' | 'kochbuch'): string => {
     const descriptions: Record<string, string> = {
       'standard': 'Umfassende inhaltliche und sprachliche Überarbeitung mit detaillierten Änderungsbegründungen.',
-      'nurKorrektur': 'Reine Korrektur von Rechtschreibung und Grammatik ohne inhaltliche Überarbeitung.'
+      'nurKorrektur': 'Reine Korrektur von Rechtschreibung und Grammatik ohne inhaltliche Überarbeitung.',
+      'kochbuch': 'Speziell für Rezepttexte: Formatierung, Reihenfolge und fachspezifische Regeln für Kochbücher.'
     };
     
     return descriptions[mode];
+  };
+  
+  const getModeTitle = (mode: 'standard' | 'nurKorrektur' | 'kochbuch'): string => {
+    const titles: Record<string, string> = {
+      'standard': 'Standard',
+      'nurKorrektur': 'Nur Korrektorat',
+      'kochbuch': 'Kochbuch'
+    };
+    
+    return titles[mode];
   };
   
   return (
@@ -119,29 +182,46 @@ const EditingTools = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block mb-2 font-medium">Lektorat-Modus:</label>
-          <div className="mode-selector flex space-x-2">
+          <div className="relative">
             <button 
-              className={`flex-1 py-2 px-4 rounded-md transition-colors ${
-                activeMode === 'standard' 
-                  ? 'bg-gnb-primary text-white' 
-                  : 'bg-muted hover:bg-muted/80 text-foreground'
-              }`}
-              onClick={() => handleModeChange('standard')}
+              onClick={() => setShowModeDropdown(!showModeDropdown)}
               disabled={disabled}
+              className="w-full flex justify-between items-center py-2 px-4 border bg-background rounded-lg hover:bg-muted transition-colors"
             >
-              Standard
+              <span>{getModeTitle(activeMode)}</span>
+              <ChevronDown className="h-4 w-4" />
             </button>
-            <button 
-              className={`flex-1 py-2 px-4 rounded-md transition-colors ${
-                activeMode === 'nurKorrektur' 
-                  ? 'bg-gnb-primary text-white' 
-                  : 'bg-muted hover:bg-muted/80 text-foreground'
-              }`}
-              onClick={() => handleModeChange('nurKorrektur')}
-              disabled={disabled}
-            >
-              Nur Korrektorat
-            </button>
+            
+            {showModeDropdown && (
+              <div className="absolute z-10 w-full mt-1 bg-background border rounded-lg shadow-lg">
+                <ul>
+                  <li>
+                    <button 
+                      className={`w-full text-left px-4 py-2 hover:bg-muted transition-colors ${activeMode === 'standard' ? 'bg-muted/50' : ''}`}
+                      onClick={() => handleModeChange('standard')}
+                    >
+                      Standard
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      className={`w-full text-left px-4 py-2 hover:bg-muted transition-colors ${activeMode === 'nurKorrektur' ? 'bg-muted/50' : ''}`}
+                      onClick={() => handleModeChange('nurKorrektur')}
+                    >
+                      Nur Korrektorat
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      className={`w-full text-left px-4 py-2 hover:bg-muted transition-colors ${activeMode === 'kochbuch' ? 'bg-muted/50' : ''}`}
+                      onClick={() => handleModeChange('kochbuch')}
+                    >
+                      Kochbuch
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            )}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             {getModeDescription(activeMode)}

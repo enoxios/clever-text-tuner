@@ -1,3 +1,4 @@
+
 import mammoth from 'mammoth';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType } from 'docx';
 
@@ -169,7 +170,7 @@ export const processLektoratResponse = (content: string): LektoratResult => {
 };
 
 // Sample prompts for the API
-export const generatePrompt = (text: string, mode: 'standard' | 'nurKorrektur', model: string): string => {
+export const generatePrompt = (text: string, mode: 'standard' | 'nurKorrektur' | 'kochbuch', model: string): string => {
   let promptText = '';
   
   switch (mode) {
@@ -239,6 +240,71 @@ KATEGORIE: Rechtschreibung und Grammatik
 (usw.)
 
 Hier ist der zu lektorierende Text:
+
+${text}`;
+      break;
+      
+    case 'kochbuch':
+      promptText = `
+Prüfe und verbessere das folgende Rezept als erfahrener Rezeptredakteur nach diesen Richtlinien:
+
+ZUR ÜBERPRÜFUNG DER ZUTATENLISTEN:
+- Entferne Doppelpunkte nach Überschriften/Zwischenüberschriften
+- Ordne Zutaten in der Reihenfolge, wie sie im Text zuerst erwähnt werden
+- Achte auf korrekte Zuordnung zu Teilrezepten und deren Reihenfolge
+- Korrigiere Rechtschreibung und Grammatik nach Duden
+- Verwende Halbgeviert-Striche bei Mengenangaben (z.B. 1–2)
+- Schreibe Adjektive/Adverbien am Zeilenanfang klein
+- Ergänze fehlende Zutaten mit "XX" als Mengenplatzhalter
+- Zeige Bruchzahlen als Zähler/Nenner (z.B. 1/2)
+- Keine Bullet Points in der Zutatenliste verwenden
+- Wasser nicht in der Zutatenliste, nur im Zubereitungstext erwähnen
+
+ZUR ÜBERPRÜFUNG DER ZUBEREITUNGSTEXTE:
+- Entferne Doppelpunkte nach Überschriften/Zwischenüberschriften
+- Korrigiere Grammatik und Rechtschreibung
+- Ändere "Hitze" zu "Temperatur"
+- Verwende korrekt Halbgeviert-Striche bei von-bis-Angaben
+- Ersetze normale durch französische Anführungszeichen »...«
+- Ändere "Soße" zu "Sauce"
+- Formuliere stichwortartige Sätze zu vollständigen Sätzen
+- Füge Artikel bei jeder Zutat im Text hinzu
+- Teile Zubereitungsschritte in Absätze ohne Nummerierung
+- Verwende Kurzschreibweise für Maßeinheiten (EL, TL, g, kg, °C)
+- Schreibe Zahlen vor Maßeinheiten als Ziffern, sonst ausgeschrieben
+- Beginne jedes Teilrezept mit einleitender Phrase
+- Verwende vielfältigen Wortschatz, vermeide Wortwiederholungen
+- Schreibe "etwa" statt "ca."
+
+BESONDERE REGELN:
+- Immer "Karotten" statt "Möhren" verwenden
+- Immer "Gewürznelken" statt nur "Nelken" verwenden
+- Bei Singular in der Zutatenliste auch im Text Singular verwenden
+- "Trockenschleudern", "trockenschütteln", "trockentupfen" zusammenschreiben
+
+PRIORITÄT: Die wichtigste Regel ist die korrekte Reihenfolge der Zutaten entsprechend ihrer Erwähnung im Zubereitungstext.
+
+WICHTIG: Verwende im Ergebnistext KEINE Markdown-Formatierung, da dieser später in Word eingefügt wird.
+
+Strukturiere deine Antwort wie folgt:
+
+LEKTORIERTER TEXT:
+[Hier den vollständig überarbeiteten Rezepttext einfügen]
+
+ÄNDERUNGEN:
+KATEGORIE: Zutatenliste
+- [Änderung mit Begründung]
+- [Änderung mit Begründung]
+
+KATEGORIE: Zubereitungstext
+- [Änderung mit Begründung]
+- [Änderung mit Begründung]
+
+KATEGORIE: Formatierung
+- [Änderung mit Begründung]
+- [Änderung mit Begründung]
+
+Hier ist das zu lektorierende Rezept:
 
 ${text}`;
       break;
