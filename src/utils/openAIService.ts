@@ -9,7 +9,8 @@ interface OpenAIResponse {
 export const callOpenAI = async (
   prompt: string,
   apiKey: string,
-  customSystemMessage?: string
+  customSystemMessage?: string,
+  model: string = 'gpt-4o'
 ): Promise<OpenAIResponse | null> => {
   try {
     // Standardwert für den System-Message
@@ -17,6 +18,7 @@ export const callOpenAI = async (
     
     // Log für Debugging
     console.log('Using system message:', systemMessage);
+    console.log('Using model:', model);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -25,7 +27,7 @@ export const callOpenAI = async (
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: model,
         messages: [
           {
             role: 'system',

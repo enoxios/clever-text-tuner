@@ -129,7 +129,7 @@ const LektoratPage = () => {
     try {
       const prompt = generatePrompt(documentText, editingMode, selectedModel);
       
-      const apiResponse = await callOpenAI(prompt, apiKey, systemMessage);
+      const apiResponse = await callOpenAI(prompt, apiKey, systemMessage, selectedModel);
       
       if (apiResponse) {
         const result = processLektoratResponse(`LEKTORIERTER TEXT:
