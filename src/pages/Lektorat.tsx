@@ -99,10 +99,12 @@ const LektoratPage = () => {
   };
 
   const handleModelChange = (model: string) => {
+    console.log('Model changed to:', model);
     setSelectedModel(model);
   };
   
   const handleSystemMessageChange = (message: string) => {
+    console.log('System message changed to:', message);
     setSystemMessage(message);
   };
 
@@ -128,24 +130,28 @@ const LektoratPage = () => {
     
     try {
       const prompt = generatePrompt(documentText, editingMode, selectedModel);
+      console.log(`Starte Anfrage mit Modell: ${selectedModel}`);
       
       const apiResponse = await callOpenAI(prompt, apiKey, systemMessage, selectedModel);
       
-      if (apiResponse) {
-        const result = processLektoratResponse(`LEKTORIERTER TEXT:
+      if (!apiResponse) {
+        throw new Error('Keine Antwort von der API erhalten');
+      }
+      
+      const result = processLektoratResponse(`LEKTORIERTER TEXT:
 ${apiResponse.text}
 
 ÄNDERUNGEN:
 ${apiResponse.changes}`);
-        
-        setEditedText(removeMarkdown(result.text));
-        setChanges(result.changes);
-      } else {
-        setError('Keine Antwort von der API erhalten');
-      }
+      
+      setEditedText(removeMarkdown(result.text));
+      setChanges(result.changes);
+      
+      toast.success('Text erfolgreich lektoriert');
     } catch (err) {
       console.error('Error processing text:', err);
-      setError(`Ein Fehler ist beim Lektorieren aufgetreten: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
+      setError(`Fehler beim Lektorieren: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
+      toast.error(`Lektorat fehlgeschlagen: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
     } finally {
       setIsProcessing(false);
     }

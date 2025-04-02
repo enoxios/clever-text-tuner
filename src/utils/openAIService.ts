@@ -20,35 +20,54 @@ export const callOpenAI = async (
     console.log('Using system message:', systemMessage);
     console.log('Using model:', model);
     
+    // Validate API key
+    if (!apiKey || apiKey.trim() === '') {
+      throw new Error('API-Schlüssel fehlt');
+    }
+    
+    // Create proper headers object
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey.trim()}`
+    };
+    
+    const requestBody = JSON.stringify({
+      model: model,
+      messages: [
+        {
+          role: 'system',
+          content: systemMessage
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 4000
+    });
+    
+    console.log('Sending request to OpenAI API...');
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          {
-            role: 'system',
-            content: systemMessage
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 4000
-      })
+      headers: headers,
+      body: requestBody
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`API-Fehler: ${errorData.error?.message || 'Unbekannter Fehler'}`);
+      const errorData = await response.json().catch(() => ({ error: { message: 'Unbekannter Fehler' } }));
+      const errorMessage = errorData.error?.message || `HTTP Fehler: ${response.status} ${response.statusText}`;
+      console.error('API error response:', errorData);
+      throw new Error(`API-Fehler: ${errorMessage}`);
     }
 
     const data = await response.json();
+    
+    if (!data || !data.choices || data.choices.length === 0) {
+      throw new Error('Leere Antwort von der API erhalten');
+    }
+    
     const content = data.choices[0]?.message?.content;
 
     if (!content) {
@@ -60,9 +79,9 @@ export const callOpenAI = async (
     const changesMatch = content.match(/ÄNDERUNGEN:\s*\n([\s\S]*)/i);
 
     // Log für Debugging
-    console.log('API Antwort:', content);
-    console.log('Extrahierter Text:', textMatch ? textMatch[1] : 'Nicht gefunden');
-    console.log('Extrahierte Änderungen:', changesMatch ? changesMatch[1] : 'Nicht gefunden');
+    console.log('API Antwort erhalten');
+    console.log('Extrahierter Text:', textMatch ? 'Gefunden' : 'Nicht gefunden');
+    console.log('Extrahierte Änderungen:', changesMatch ? 'Gefunden' : 'Nicht gefunden');
 
     return {
       text: textMatch && textMatch[1] ? textMatch[1].trim() : content,
