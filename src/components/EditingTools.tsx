@@ -119,7 +119,7 @@ Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" un
     const descriptions: Record<string, string> = {
       'gpt-4o': 'Aktuellstes OpenAI-Modell mit höchster Qualität',
       'gpt-4o-mini': 'Schnelleres und kostengünstigeres Modell',
-      'o3-mini': 'Schnellstes und kostengünstigstes OpenAI-Modell (Testversion)'
+      'o3-mini': 'Experimentelles Modell - für kurze Texte geeignet. Bei Problemen bitte GPT-4o verwenden.'
     };
     
     return descriptions[model] || `${model}: Ausgewähltes KI-Modell für das Lektorat.`;
