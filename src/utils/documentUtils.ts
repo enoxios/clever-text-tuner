@@ -1,4 +1,3 @@
-
 import mammoth from 'mammoth';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType } from 'docx';
 
@@ -20,7 +19,7 @@ export interface LektoratResult {
 }
 
 // Warning limit for document length
-export const WARNING_LIMIT = 30000;
+export const WARNING_LIMIT = 14500; // Geschätzte Zeichenanzahl für 2900 Wörter
 export const CRITICAL_LIMIT = 150000;
 
 // Process Word document and extract text
