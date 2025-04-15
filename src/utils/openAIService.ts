@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 
 interface OpenAIResponse {
@@ -17,8 +16,8 @@ export const callOpenAI = async (
     const systemMessage = customSystemMessage || 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
     
     // Log für Debugging
-    console.log('Using system message:', systemMessage);
     console.log('Using model:', model);
+    console.log('Using system message:', systemMessage);
     
     // Validate API key
     if (!apiKey || apiKey.trim() === '') {
@@ -31,7 +30,8 @@ export const callOpenAI = async (
       'Authorization': `Bearer ${apiKey.trim()}`
     };
     
-    const requestBody = JSON.stringify({
+    // Prepare the request body based on the model
+    const requestBody = {
       model: model,
       messages: [
         {
@@ -43,16 +43,24 @@ export const callOpenAI = async (
           content: prompt
         }
       ],
-      temperature: 0.7,
-      max_tokens: 4000
-    });
+      temperature: 0.7
+    };
+    
+    // Add the correct token parameter based on the model
+    if (model.includes('o3')) {
+      // O3 models use max_completion_tokens
+      Object.assign(requestBody, { max_completion_tokens: 4000 });
+    } else {
+      // Other models use max_tokens
+      Object.assign(requestBody, { max_tokens: 4000 });
+    }
     
     console.log('Sending request to OpenAI API...');
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: headers,
-      body: requestBody
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
