@@ -118,8 +118,7 @@ Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" un
   const getModelDescription = (model: string): string => {
     const descriptions: Record<string, string> = {
       'gpt-4o': 'Aktuellstes OpenAI-Modell mit höchster Qualität',
-      'gpt-4o-mini': 'Schnelleres und kostengünstigeres Modell',
-      'o3-mini': 'Experimentelles Modell - für kurze Texte geeignet. Bei Problemen bitte GPT-4o verwenden.'
+      'gpt-4o-mini': 'Schnelleres und kostengünstigeres Modell'
     };
     
     return descriptions[model] || `${model}: Ausgewähltes KI-Modell für das Lektorat.`;
@@ -236,7 +235,6 @@ Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" un
           >
             <option value="gpt-4o">GPT-4o (Empfohlen)</option>
             <option value="gpt-4o-mini">GPT-4o Mini</option>
-            <option value="o3-mini">O3 Mini</option>
           </select>
           <p className="text-sm text-muted-foreground mt-1">
             {getModelDescription(activeModel)}

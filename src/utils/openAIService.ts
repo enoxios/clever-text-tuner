@@ -31,8 +31,8 @@ export const callOpenAI = async (
       'Authorization': `Bearer ${apiKey.trim()}`
     };
     
-    // Prepare the request body based on the model
-    const requestBody: any = {
+    // Prepare the request body
+    const requestBody = {
       model: model,
       messages: [
         {
@@ -43,20 +43,10 @@ export const callOpenAI = async (
           role: 'user',
           content: prompt
         }
-      ]
+      ],
+      max_tokens: 4000,
+      temperature: 0.7
     };
-    
-    // Add model-specific parameters
-    if (model.includes('o3')) {
-      // O3 models use max_completion_tokens 
-      requestBody.max_completion_tokens = 2000; // Further reduced from 3000 to prevent truncation
-      // Increase temperature slightly to get more variety
-      requestBody.temperature = 0.5;
-    } else {
-      // Other models use max_tokens and temperature
-      requestBody.max_tokens = 4000;
-      requestBody.temperature = 0.7;
-    }
     
     console.log('Sending request to OpenAI API...');
     console.log('Request model:', model);
@@ -88,22 +78,16 @@ export const callOpenAI = async (
     
     const content = data.choices[0]?.message?.content;
 
-    // Validate content properly - check explicitly for null, undefined, or empty string
+    // Validate content properly
     if (content === null || content === undefined) {
       console.error('No content in API response:', data.choices[0]);
       throw new Error('Keine Textantwort in der API-Antwort gefunden');
     }
 
-    // Check if the response was cut off (finish_reason: "length")
-    if (data.choices[0]?.finish_reason === 'length') {
-      console.warn('Response was cut off due to length. Consider shorter input or chunking the request.');
-      toast.warning('Die Antwort wurde wegen Längenbegrenzung abgeschnitten. Versuchen Sie einen kürzeren Text oder wählen Sie ein anderes Modell.');
-    }
-
     console.log('Content received length:', content.length);
     console.log('Content preview:', content.substring(0, 100) + '...');
     
-    // Handle empty content case - now only when it's an empty string
+    // Handle empty content case
     if (content.trim() === '') {
       console.log('Empty content received from API');
       return {
@@ -121,18 +105,9 @@ export const callOpenAI = async (
     console.log('Extrahierter Text:', textMatch ? 'Gefunden' : 'Nicht gefunden');
     console.log('Extrahierte Änderungen:', changesMatch ? 'Gefunden' : 'Nicht gefunden');
 
-    // If we can't find the sections, return the entire content as text but with a note
+    // If we can't find the sections, return the entire content as text with a note
     if (!textMatch && !changesMatch) {
       console.log('LEKTORIERTER TEXT and ÄNDERUNGEN sections not found, returning full content');
-      
-      // When using o3-mini model specifically, provide clearer message
-      if (model.includes('o3-mini')) {
-        return {
-          text: content.trim(),
-          changes: 'Das Modell o3-mini hat Schwierigkeiten, die Ausgabe zu strukturieren. Bitte versuchen Sie es mit dem GPT-4o Modell für bessere Ergebnisse.'
-        };
-      }
-      
       return {
         text: content.trim(),
         changes: 'Die API-Antwort enthielt keine strukturierten Abschnitte mit "LEKTORIERTER TEXT" und "ÄNDERUNGEN".'
@@ -149,3 +124,4 @@ export const callOpenAI = async (
     return null;
   }
 };
+
