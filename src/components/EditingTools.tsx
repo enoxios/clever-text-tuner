@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Info, ChevronDown } from 'lucide-react';
 
@@ -25,7 +24,6 @@ const EditingTools = ({
   const [systemMessage, setSystemMessage] = useState(defaultSystemMessage);
   const [showModeDropdown, setShowModeDropdown] = useState(false);
   
-  // Systemprompfs für die verschiedenen Modi
   const standardSystemMessage = 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Führe ein umfassendes Lektorat mit inhaltlicher und sprachlicher Überarbeitung durch. Achte auf Struktur, Logik, Stil und Wortwahl. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
   
   const nurKorrekturSystemMessage = 'Du bist ein professioneller Korrektor und hilfst dabei, Texte zu korrigieren. Korrigiere ausschließlich Rechtschreibung, Grammatik und Zeichensetzung, ohne den Stil oder Inhalt zu verändern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
@@ -73,7 +71,6 @@ Wichtige Regeln:
 
 Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".`;
   
-  // Aktualisiere den Systemprompf, wenn sich der Modus ändert
   useEffect(() => {
     let newSystemMessage;
     
@@ -104,8 +101,6 @@ Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" un
     setActiveMode(mode);
     onModeChange(mode);
     setShowModeDropdown(false);
-    
-    // Systemprompf wird durch useEffect aktualisiert
   };
   
   const handleModelChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -124,7 +119,7 @@ Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" un
     const descriptions: Record<string, string> = {
       'gpt-4o': 'Aktuellstes OpenAI-Modell mit höchster Qualität',
       'gpt-4o-mini': 'Schnelleres und kostengünstigeres Modell',
-      'gpt-4.5': 'Neues GPT-4.5 Modell mit verbesserter Leistung'
+      'o3-mini': 'Schnellstes und kostengünstigstes OpenAI-Modell'
     };
     
     return descriptions[model] || `${model}: Ausgewähltes KI-Modell für das Lektorat.`;
@@ -241,7 +236,7 @@ Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" un
           >
             <option value="gpt-4o">GPT-4o (Empfohlen)</option>
             <option value="gpt-4o-mini">GPT-4o Mini</option>
-            <option value="gpt-4.5">GPT-4.5</option>
+            <option value="o3-mini">O3 Mini</option>
           </select>
           <p className="text-sm text-muted-foreground mt-1">
             {getModelDescription(activeModel)}
