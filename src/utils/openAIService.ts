@@ -48,13 +48,11 @@ export const callOpenAI = async (
     // Add model-specific parameters
     if (model.includes('o3')) {
       // O3 models use max_completion_tokens and don't support temperature
-      Object.assign(requestBody, { max_completion_tokens: 4000 });
+      requestBody.max_completion_tokens = 4000;
     } else {
       // Other models use max_tokens and temperature
-      Object.assign(requestBody, { 
-        max_tokens: 4000,
-        temperature: 0.7
-      });
+      requestBody.max_tokens = 4000;
+      requestBody.temperature = 0.7;
     }
     
     console.log('Sending request to OpenAI API...');
