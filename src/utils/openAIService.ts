@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 
 interface OpenAIResponse {
@@ -47,8 +48,8 @@ export const callOpenAI = async (
     
     // Add model-specific parameters
     if (model.includes('o3')) {
-      // O3 models use max_completion_tokens and don't support temperature
-      requestBody.max_completion_tokens = 4000;
+      // O3 models use max_completion_tokens 
+      requestBody.max_completion_tokens = 3000; // Reduced from 4000 to ensure we get a complete response
     } else {
       // Other models use max_tokens and temperature
       requestBody.max_tokens = 4000;
@@ -64,6 +65,10 @@ export const callOpenAI = async (
       body: JSON.stringify(requestBody)
     });
 
+    // Log the raw response status and headers for debugging
+    console.log('API response status:', response.status);
+    console.log('API response status text:', response.statusText);
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: { message: 'Unbekannter Fehler' } }));
       const errorMessage = errorData.error?.message || `HTTP Fehler: ${response.status} ${response.statusText}`;
@@ -72,15 +77,35 @@ export const callOpenAI = async (
     }
 
     const data = await response.json();
+    console.log('API response data received:', data ? 'Yes' : 'No');
     
     if (!data || !data.choices || data.choices.length === 0) {
-      throw new Error('Leere Antwort von der API erhalten');
+      console.error('Empty or invalid response from API:', data);
+      throw new Error('Leere oder ungültige Antwort von der API erhalten');
     }
     
     const content = data.choices[0]?.message?.content;
 
-    if (!content) {
-      throw new Error('Keine Antwort von der API erhalten');
+    if (!content && content !== '') {
+      console.error('No content in API response:', data.choices[0]);
+      throw new Error('Keine Textantwort in der API-Antwort gefunden');
+    }
+
+    // Check if the response was cut off (finish_reason: "length")
+    if (data.choices[0]?.finish_reason === 'length') {
+      console.warn('Response was cut off due to length. Consider shorter input or chunking the request.');
+      toast.warning('Die Antwort wurde wegen Längenbegrenzung abgeschnitten. Versuchen Sie kürzeren Text oder wählen Sie ein anderes Modell.');
+    }
+
+    console.log('Content received:', content ? content.substring(0, 100) + '...' : 'Empty');
+    
+    // Handle empty content case
+    if (!content || content.trim() === '') {
+      console.log('Empty content received, using default structure');
+      return {
+        text: prompt, // Return original text
+        changes: 'Keine Änderungen vorgenommen, da keine Antwort vom Modell erhalten wurde.'
+      };
     }
 
     // Teile den Inhalt in Text und Änderungen auf
@@ -91,6 +116,15 @@ export const callOpenAI = async (
     console.log('API Antwort erhalten');
     console.log('Extrahierter Text:', textMatch ? 'Gefunden' : 'Nicht gefunden');
     console.log('Extrahierte Änderungen:', changesMatch ? 'Gefunden' : 'Nicht gefunden');
+
+    // If we can't find the sections, return the entire content as text
+    if (!textMatch && !changesMatch) {
+      console.log('LEKTORIERTER TEXT and ÄNDERUNGEN sections not found, returning full content');
+      return {
+        text: content,
+        changes: 'Die API-Antwort enthielt keine strukturierten Abschnitte.'
+      };
+    }
 
     return {
       text: textMatch && textMatch[1] ? textMatch[1].trim() : content,
