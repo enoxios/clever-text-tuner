@@ -1,7 +1,11 @@
-
 import { toast } from 'sonner';
 
 interface OpenAIResponse {
+  text: string;
+  changes: string;
+}
+
+interface OpenAIResponseWithGlossary extends OpenAIResponse {
   text: string;
   changes: string;
 }
@@ -10,12 +14,22 @@ export const callOpenAI = async (
   prompt: string,
   apiKey: string,
   customSystemMessage?: string,
-  model: string = 'gpt-4o'
+  model: string = 'gpt-4o',
+  glossaryEntries?: { term: string; explanation: string; }[]
 ): Promise<OpenAIResponse | null> => {
   try {
     // Standardwert für den System-Message
-    const systemMessage = customSystemMessage || 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
+    let systemMessage = customSystemMessage || 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
     
+    // Füge Glossar zum System-Message hinzu, wenn vorhanden
+    if (glossaryEntries && glossaryEntries.length > 0) {
+      const glossaryText = glossaryEntries
+        .map(entry => `${entry.term}: ${entry.explanation}`)
+        .join('\n');
+      
+      systemMessage = `${systemMessage}\n\nVerwende folgendes Glossar für die Lektorierung:\n${glossaryText}`;
+    }
+
     // Log für Debugging
     console.log('Using model:', model);
     console.log('Using system message:', systemMessage?.substring(0, 100) + '...');
@@ -124,4 +138,3 @@ export const callOpenAI = async (
     return null;
   }
 };
-

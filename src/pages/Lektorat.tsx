@@ -5,6 +5,7 @@ import DocumentStats from '@/components/DocumentStats';
 import EditingTools from '@/components/EditingTools';
 import TextEditor from '@/components/TextEditor';
 import ResultView from '@/components/ResultView';
+import GlossaryUpload from '@/components/GlossaryUpload';
 import { 
   extractTextFromDocx, 
   calculateDocumentStats,
@@ -15,6 +16,11 @@ import {
   type ChangeItem
 } from '@/utils/documentUtils';
 import { callOpenAI } from '@/utils/openAIService';
+
+interface GlossaryEntry {
+  term: string;
+  explanation: string;
+}
 
 const LektoratPage = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -40,6 +46,7 @@ const LektoratPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string>('');
   const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(false);
+  const [glossaryEntries, setGlossaryEntries] = useState<GlossaryEntry[]>([]);
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -132,7 +139,13 @@ const LektoratPage = () => {
       const prompt = generatePrompt(documentText, editingMode, selectedModel);
       console.log(`Starte Anfrage mit Modell: ${selectedModel}`);
       
-      const apiResponse = await callOpenAI(prompt, apiKey, systemMessage, selectedModel);
+      const apiResponse = await callOpenAI(
+        prompt, 
+        apiKey, 
+        systemMessage, 
+        selectedModel,
+        glossaryEntries
+      );
       
       if (!apiResponse) {
         throw new Error('Keine Antwort von der API erhalten');
@@ -201,6 +214,10 @@ ${apiResponse.changes}`);
           {!file ? (
             <div className="mt-6">
               <UploadZone onFileSelect={handleFileSelect} />
+              <div className="mt-4">
+                <h3 className="text-sm font-medium mb-2">Optional: Glossar hochladen</h3>
+                <GlossaryUpload onGlossaryLoad={setGlossaryEntries} />
+              </div>
             </div>
           ) : (
             <div className="mt-6">
