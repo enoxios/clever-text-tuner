@@ -31,7 +31,7 @@ export const callOpenAI = async (
     };
     
     // Prepare the request body based on the model
-    const requestBody = {
+    const requestBody: any = {
       model: model,
       messages: [
         {
@@ -42,20 +42,23 @@ export const callOpenAI = async (
           role: 'user',
           content: prompt
         }
-      ],
-      temperature: 0.7
+      ]
     };
     
-    // Add the correct token parameter based on the model
+    // Add model-specific parameters
     if (model.includes('o3')) {
-      // O3 models use max_completion_tokens
+      // O3 models use max_completion_tokens and don't support temperature
       Object.assign(requestBody, { max_completion_tokens: 4000 });
     } else {
-      // Other models use max_tokens
-      Object.assign(requestBody, { max_tokens: 4000 });
+      // Other models use max_tokens and temperature
+      Object.assign(requestBody, { 
+        max_tokens: 4000,
+        temperature: 0.7
+      });
     }
     
     console.log('Sending request to OpenAI API...');
+    console.log('Request body:', JSON.stringify(requestBody));
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
