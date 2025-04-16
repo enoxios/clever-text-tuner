@@ -100,7 +100,7 @@ const UploadZone = ({
         
         <p className="text-sm text-muted-foreground">
           {allowLargeFiles ? 
-            "Auch große Dokumente werden unterstützt und automatisch aufgeteilt" : 
+            "Auch große Dokumente werden unterstützt und in Abschnitte von 2000 Wörtern aufgeteilt" : 
             `Nur .docx Dateien werden unterstützt (max. ${maxFileSizeMB}MB)`}
         </p>
       </div>
