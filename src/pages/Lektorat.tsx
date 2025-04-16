@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import UploadZone from '@/components/UploadZone';
@@ -54,7 +53,6 @@ const LektoratPage = () => {
   const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(false);
   const [glossaryEntries, setGlossaryEntries] = useState<GlossaryEntry[]>([]);
   
-  // Neue States für Chunking
   const [isLargeDocument, setIsLargeDocument] = useState<boolean>(false);
   const [textChunks, setTextChunks] = useState<TextChunk[]>([]);
   const [chunkProgress, setChunkProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
@@ -73,12 +71,10 @@ const LektoratPage = () => {
       const stats = calculateDocumentStats(text);
       setDocumentStats(stats);
       
-      // Überprüfen, ob es sich um ein großes Dokument handelt
       const needsChunking = text.length > MAX_CHUNK_SIZE;
       setIsLargeDocument(needsChunking);
       
       if (needsChunking) {
-        // Dokument in Chunks aufteilen
         const chunks = splitDocumentIntoChunks(text);
         setTextChunks(chunks);
         toast.info(`Großes Dokument erkannt: Wird in ${chunks.length} Teile aufgeteilt`);
@@ -119,18 +115,18 @@ const LektoratPage = () => {
       setChanges([]);
       setError(null);
     }
+    
+    setApiKey('');
   };
 
   const handleTextChange = (text: string) => {
     setDocumentText(text);
     setDocumentStats(calculateDocumentStats(text));
     
-    // Überprüfen, ob es sich um ein großes Dokument handelt
     const needsChunking = text.length > MAX_CHUNK_SIZE;
     setIsLargeDocument(needsChunking);
     
     if (needsChunking) {
-      // Dokument in Chunks aufteilen
       const chunks = splitDocumentIntoChunks(text);
       setTextChunks(chunks);
     } else {
@@ -154,7 +150,10 @@ const LektoratPage = () => {
   };
 
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setApiKey(e.target.value);
+    const newKey = e.target.value;
+    if (!newKey.includes('Fehler')) {
+      setApiKey(newKey);
+    }
   };
 
   const processText = async () => {
@@ -169,13 +168,19 @@ const LektoratPage = () => {
       return;
     }
     
+    if (apiKey.includes('Fehler')) {
+      toast.error('Ungültiger API-Schlüssel. Bitte geben Sie einen gültigen OpenAI API-Schlüssel ein');
+      setShowApiKeyInput(true);
+      setApiKey('');
+      return;
+    }
+    
     setIsProcessing(true);
     setShowResults(true);
     setError(null);
     
     try {
       if (isLargeDocument && textChunks.length > 0) {
-        // Verarbeitung großer Dokumente in Chunks
         toast.info(`Verarbeitung in ${textChunks.length} Teilen gestartet`);
         setChunkProgress({ completed: 0, total: textChunks.length });
         
@@ -192,7 +197,6 @@ const LektoratPage = () => {
           }
         );
         
-        // Zusammenführen der Ergebnisse
         const mergedText = mergeProcessedChunks(processedChunks);
         const mergedChangeItems = mergeChanges(allChanges);
         
@@ -201,7 +205,6 @@ const LektoratPage = () => {
         
         toast.success(`Lektorat für alle ${textChunks.length} Teile abgeschlossen`);
       } else {
-        // Normale Verarbeitung für kleinere Dokumente
         const prompt = generatePrompt(documentText, editingMode, selectedModel);
         console.log(`Starte Anfrage mit Modell: ${selectedModel}`);
         

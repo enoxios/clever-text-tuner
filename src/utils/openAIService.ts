@@ -40,6 +40,11 @@ export const callOpenAI = async (
       throw new Error('API-Schlüssel fehlt');
     }
     
+    // Verhindere, dass eine Fehlermeldung als API-Schlüssel verwendet wird
+    if (apiKey.includes('Fehler')) {
+      throw new Error('Ungültiger API-Schlüssel. Bitte geben Sie einen gültigen OpenAI API-Schlüssel ein');
+    }
+    
     // Create proper headers object
     const headers = new Headers({
       'Content-Type': 'application/json',
@@ -150,6 +155,15 @@ export const processChunks = async (
   glossaryEntries?: { term: string; explanation: string; }[],
   onChunkProgress?: (completed: number, total: number) => void
 ): Promise<{ processedChunks: { text: string; index: number }[], allChanges: { text: string; isCategory: boolean }[][] }> => {
+  // Validiere den API-Schlüssel bevor wir mit der Verarbeitung beginnen
+  if (!apiKey || apiKey.trim() === '') {
+    throw new Error('API-Schlüssel fehlt');
+  }
+  
+  if (apiKey.includes('Fehler')) {
+    throw new Error('Ungültiger API-Schlüssel. Bitte geben Sie einen gültigen OpenAI API-Schlüssel ein');
+  }
+  
   const processedChunks: { text: string; index: number }[] = [];
   const allChanges: { text: string; isCategory: boolean }[][] = [];
   
@@ -177,10 +191,6 @@ export const processChunks = async (
       }
       
       // Process the response
-      const result = {
-        text: `LEKTORIERTER TEXT:\n${response.text}\n\nÄNDERUNGEN:\n${response.changes}`
-      };
-      
       const processedResult = {
         text: response.text,
         index: chunk.index,
