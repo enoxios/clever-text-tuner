@@ -18,9 +18,15 @@ export interface LektoratResult {
   changes: ChangeItem[];
 }
 
+export interface TextChunk {
+  text: string;
+  index: number;
+}
+
 // Warning limit for document length
 export const WARNING_LIMIT = 14500; // Geschätzte Zeichenanzahl für 2900 Wörter
 export const CRITICAL_LIMIT = 150000;
+export const MAX_CHUNK_SIZE = 14000; // Etwas weniger als das Limit, um Sicherheit zu haben
 
 // Process Word document and extract text
 export const extractTextFromDocx = async (file: File): Promise<string> => {
@@ -102,58 +108,45 @@ export const removeMarkdown = (text: string): string => {
 
 // Process API response to extract text and changes
 export const processLektoratResponse = (content: string): LektoratResult => {
-  // Default return structure
   const result: LektoratResult = {
     text: '',
     changes: []
   };
   
   try {
-    // Search for sections in the response
     const textMatch = content.match(/LEKTORIERTER TEXT:\s*\n([\s\S]*?)(?=ÄNDERUNGEN:|$)/i);
     const changesMatch = content.match(/ÄNDERUNGEN:\s*\n([\s\S]*)/i);
     
-    // Extract edited text
     if (textMatch && textMatch[1]) {
       result.text = textMatch[1].trim();
     } else {
-      // Fallback: Try normal headings
       const altTextMatch = content.match(/Lektorierter Text\s*\n([\s\S]*?)(?=Änderungen|$)/i);
       if (altTextMatch && altTextMatch[1]) {
         result.text = altTextMatch[1].trim();
       } else {
-        // Last fallback: Use the entire content
         result.text = content;
       }
     }
     
-    // Extract changes list with categories
     if (changesMatch && changesMatch[1]) {
       const changesText = changesMatch[1].trim();
       
-      // Split into lines for categories and changes
       const lines = changesText.split('\n').filter(line => line.trim().length > 0);
       
-      // Extract categories and changes
       for (const line of lines) {
         const trimmedLine = line.trim();
         
-        // Category line
         if (trimmedLine.match(/^KATEGORIE:|^Kategorie:/i)) {
           result.changes.push({
             text: trimmedLine.replace(/^KATEGORIE:|^Kategorie:/i, '').trim(),
             isCategory: true
           });
-        } 
-        // Bullet point
-        else if (trimmedLine.match(/^[-•*]\s+/)) {
+        } else if (trimmedLine.match(/^[-•*]\s+/)) {
           result.changes.push({
             text: trimmedLine.replace(/^[-•*]\s+/, '').trim(),
             isCategory: false
           });
-        }
-        // Numbered point
-        else if (trimmedLine.match(/^\d+[\.\)]\s+/)) {
+        } else if (trimmedLine.match(/^\d+[\.\)]\s+/)) {
           result.changes.push({
             text: trimmedLine.replace(/^\d+[\.\)]\s+/, '').trim(),
             isCategory: false
@@ -317,7 +310,6 @@ export const generateWordDocument = async (
   editedText: string, 
   changes: ChangeItem[]
 ): Promise<Blob> => {
-  // Create paragraphs from the edited text
   const textParagraphs = editedText.split('\n\n').map(paragraph => 
     new Paragraph({
       children: [
@@ -326,7 +318,6 @@ export const generateWordDocument = async (
     })
   );
 
-  // Create paragraphs for the changes
   const changeParagraphs: Paragraph[] = [];
   let currentCategory = '';
 
@@ -358,7 +349,6 @@ export const generateWordDocument = async (
     }
   });
 
-  // Create a new document with all content in appropriate sections
   const doc = new Document({
     sections: [
       {
@@ -366,7 +356,6 @@ export const generateWordDocument = async (
           type: SectionType.CONTINUOUS,
         },
         children: [
-          // Add the edited text first
           new Paragraph({
             text: 'Lektorierter Text',
             heading: HeadingLevel.HEADING_1,
@@ -376,12 +365,10 @@ export const generateWordDocument = async (
           }),
           ...textParagraphs,
           
-          // Add a page break before the changes
           new Paragraph({
             children: [new TextRun({ text: '', break: 1 })],
           }),
           
-          // Add the changes section
           new Paragraph({
             text: 'Vorgenommene Änderungen',
             heading: HeadingLevel.HEADING_1,
@@ -395,7 +382,6 @@ export const generateWordDocument = async (
     ],
   });
   
-  // Generate the document as a blob
   return Packer.toBlob(doc);
 };
 
@@ -408,23 +394,99 @@ export const downloadWordDocument = async (
   try {
     const blob = await generateWordDocument(editedText, changes);
     
-    // Create a URL for the blob
     const url = URL.createObjectURL(blob);
     
-    // Create a temporary link element to trigger the download
     const link = document.createElement('a');
     link.href = url;
     link.download = `${fileName}.docx`;
     
-    // Trigger the download
     document.body.appendChild(link);
     link.click();
     
-    // Clean up
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error('Error generating Word document:', error);
     throw error;
   }
+};
+
+/**
+ * Splits a document into manageable chunks while preserving paragraph integrity.
+ * @param text The full document text
+ * @returns Array of text chunks
+ */
+export const splitDocumentIntoChunks = (text: string): TextChunk[] => {
+  const paragraphs = text.split(/\n\n+/);
+  const chunks: TextChunk[] = [];
+  let currentChunk = "";
+  let chunkIndex = 0;
+  
+  for (const paragraph of paragraphs) {
+    if ((currentChunk.length + paragraph.length + 2) > MAX_CHUNK_SIZE && currentChunk.length > 0) {
+      chunks.push({
+        text: currentChunk.trim(),
+        index: chunkIndex
+      });
+      currentChunk = paragraph;
+      chunkIndex++;
+    } else {
+      currentChunk += (currentChunk ? "\n\n" : "") + paragraph;
+    }
+  }
+  
+  if (currentChunk.length > 0) {
+    chunks.push({
+      text: currentChunk.trim(),
+      index: chunkIndex
+    });
+  }
+  
+  return chunks;
+};
+
+/**
+ * Merges the processed text chunks back into a single document
+ * @param processedChunks Array of processed text chunks
+ * @returns The complete merged text
+ */
+export const mergeProcessedChunks = (processedChunks: TextChunk[]): string => {
+  const sortedChunks = [...processedChunks].sort((a, b) => a.index - b.index);
+  return sortedChunks.map(chunk => chunk.text).join("\n\n");
+};
+
+/**
+ * Merges multiple sets of changes from different chunks
+ * @param allChanges Array of changes from different chunks
+ * @returns Merged changes with proper categories
+ */
+export const mergeChanges = (allChanges: ChangeItem[][]): ChangeItem[] => {
+  const mergedChanges: ChangeItem[] = [];
+  const categoryMap = new Map<string, ChangeItem[]>();
+  
+  for (const changes of allChanges) {
+    let currentCategory = "";
+    
+    for (const change of changes) {
+      if (change.isCategory) {
+        currentCategory = change.text;
+        if (!categoryMap.has(currentCategory)) {
+          categoryMap.set(currentCategory, []);
+        }
+      } else if (currentCategory) {
+        categoryMap.get(currentCategory)?.push(change);
+      }
+    }
+  }
+  
+  for (const [category, items] of categoryMap.entries()) {
+    mergedChanges.push({
+      text: category,
+      isCategory: true
+    });
+    
+    mergedChanges.push(...items);
+  }
+  
+  return mergedChanges;
 };

@@ -6,12 +6,14 @@ interface UploadZoneProps {
   onFileSelect: (file: File) => void;
   acceptedFileTypes?: string;
   maxFileSizeMB?: number;
+  allowLargeFiles?: boolean;
 }
 
 const UploadZone = ({ 
   onFileSelect, 
   acceptedFileTypes = '.docx', 
-  maxFileSizeMB = 10 
+  maxFileSizeMB = 10,
+  allowLargeFiles = true
 }: UploadZoneProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ const UploadZone = ({
     
     // Check file size
     const fileSizeMB = file.size / (1024 * 1024);
-    if (fileSizeMB > maxFileSizeMB) {
+    if (fileSizeMB > maxFileSizeMB && !allowLargeFiles) {
       setError(`Die Datei ist zu groß. Maximal ${maxFileSizeMB}MB erlaubt.`);
       return false;
     }
@@ -97,7 +99,9 @@ const UploadZone = ({
         </p>
         
         <p className="text-sm text-muted-foreground">
-          Nur .docx Dateien werden unterstützt
+          {allowLargeFiles ? 
+            "Auch große Dokumente werden unterstützt und automatisch aufgeteilt" : 
+            `Nur .docx Dateien werden unterstützt (max. ${maxFileSizeMB}MB)`}
         </p>
       </div>
       

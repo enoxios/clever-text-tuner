@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 
 interface OpenAIResponse {
@@ -137,4 +138,91 @@ export const callOpenAI = async (
     toast.error(`Fehler bei der API-Anfrage: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`);
     return null;
   }
+};
+
+// New function to process document chunks in sequence
+export const processChunks = async (
+  chunks: { text: string; index: number }[],
+  apiKey: string,
+  mode: 'standard' | 'nurKorrektur' | 'kochbuch',
+  model: string,
+  systemMessage: string,
+  glossaryEntries?: { term: string; explanation: string; }[],
+  onChunkProgress?: (completed: number, total: number) => void
+): Promise<{ processedChunks: { text: string; index: number }[], allChanges: { text: string; isCategory: boolean }[][] }> => {
+  const processedChunks: { text: string; index: number }[] = [];
+  const allChanges: { text: string; isCategory: boolean }[][] = [];
+  
+  // Process each chunk sequentially
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    
+    try {
+      // Generate prompt for this chunk
+      // Wenn es sich nicht um den ersten Chunk handelt, fügen wir einen Hinweis hinzu
+      let chunkPrompt = '';
+      if (i > 0) {
+        chunkPrompt = `Dies ist Teil ${i+1} von ${chunks.length} eines größeren Textes. Lektoriere diesen Teil wie üblich:\n\n${chunk.text}`;
+      } else {
+        chunkPrompt = chunk.text;
+      }
+      
+      const prompt = `@${model} ${chunkPrompt}`;
+      
+      // Call the API
+      const response = await callOpenAI(prompt, apiKey, systemMessage, model, glossaryEntries);
+      
+      if (!response) {
+        throw new Error(`Fehler bei der Verarbeitung des Textabschnitts ${i+1}`);
+      }
+      
+      // Process the response
+      const result = {
+        text: `LEKTORIERTER TEXT:\n${response.text}\n\nÄNDERUNGEN:\n${response.changes}`
+      };
+      
+      const processedResult = {
+        text: response.text,
+        index: chunk.index,
+        changes: response.changes
+      };
+      
+      // Extract changes
+      const parsedResult = {
+        text: response.text,
+        changes: response.changes
+          .split('\n')
+          .filter(line => line.trim().length > 0)
+          .map(line => {
+            // Check if this is a category line
+            const isCategoryLine = line.match(/^KATEGORIE:|^Kategorie:/i);
+            return {
+              text: isCategoryLine 
+                ? line.replace(/^KATEGORIE:|^Kategorie:/i, '').trim()
+                : line.replace(/^[-•*]\s+|\d+[\.\)]\s+/, '').trim(),
+              isCategory: !!isCategoryLine
+            };
+          })
+      };
+      
+      // Add to processed results
+      processedChunks.push({
+        text: processedResult.text,
+        index: processedResult.index
+      });
+      
+      allChanges.push(parsedResult.changes);
+      
+      // Update progress
+      if (onChunkProgress) {
+        onChunkProgress(i + 1, chunks.length);
+      }
+      
+    } catch (error) {
+      console.error(`Error processing chunk ${i}:`, error);
+      throw new Error(`Fehler bei der Verarbeitung des Textabschnitts ${i+1}: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`);
+    }
+  }
+  
+  return { processedChunks, allChanges };
 };

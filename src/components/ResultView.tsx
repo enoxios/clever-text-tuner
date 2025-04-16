@@ -11,6 +11,7 @@ interface ResultViewProps {
   changes: ChangeItem[];
   error: string | null;
   fileName?: string;
+  chunkProgress?: { completed: number; total: number };
 }
 
 const ResultView = ({ 
@@ -19,7 +20,8 @@ const ResultView = ({
   editedText, 
   changes, 
   error, 
-  fileName = 'lektorierter-text' 
+  fileName = 'lektorierter-text',
+  chunkProgress
 }: ResultViewProps) => {
   const [activeTab, setActiveTab] = useState<'text' | 'changes' | 'comparison'>('text');
   const [isCopied, setIsCopied] = useState(false);
@@ -61,9 +63,25 @@ const ResultView = ({
   
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12 animate-fade-in">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gnb-primary"></div>
-        <span className="ml-3">Der Text wird lektoriert...</span>
+      <div className="flex flex-col items-center justify-center py-12 animate-fade-in">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gnb-primary mb-4"></div>
+        <span className="text-center">Der Text wird lektoriert...</span>
+        
+        {chunkProgress && chunkProgress.total > 0 && (
+          <div className="w-full max-w-md mt-4">
+            <div className="text-sm text-center mb-2">
+              Bearbeite Teil {chunkProgress.completed} von {chunkProgress.total}
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div 
+                className="bg-gnb-primary h-2 rounded-full transition-all duration-300" 
+                style={{ 
+                  width: `${Math.max(5, (chunkProgress.completed / chunkProgress.total) * 100)}%` 
+                }}
+              ></div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

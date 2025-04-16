@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import UploadZone from '@/components/UploadZone';
@@ -13,9 +14,14 @@ import {
   generatePrompt,
   removeMarkdown,
   type DocumentStats as DocumentStatsType,
-  type ChangeItem
+  type ChangeItem,
+  type TextChunk,
+  splitDocumentIntoChunks,
+  mergeProcessedChunks,
+  mergeChanges,
+  MAX_CHUNK_SIZE
 } from '@/utils/documentUtils';
-import { callOpenAI } from '@/utils/openAIService';
+import { callOpenAI, processChunks } from '@/utils/openAIService';
 
 interface GlossaryEntry {
   term: string;
@@ -47,6 +53,11 @@ const LektoratPage = () => {
   const [apiKey, setApiKey] = useState<string>('');
   const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(false);
   const [glossaryEntries, setGlossaryEntries] = useState<GlossaryEntry[]>([]);
+  
+  // Neue States für Chunking
+  const [isLargeDocument, setIsLargeDocument] = useState<boolean>(false);
+  const [textChunks, setTextChunks] = useState<TextChunk[]>([]);
+  const [chunkProgress, setChunkProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -55,17 +66,29 @@ const LektoratPage = () => {
     
     try {
       const text = await extractTextFromDocx(selectedFile);
-      setProgress(100);
+      setProgress(50);
       
       setDocumentText(text);
       setOriginalText(text); // Save original text
       const stats = calculateDocumentStats(text);
       setDocumentStats(stats);
       
+      // Überprüfen, ob es sich um ein großes Dokument handelt
+      const needsChunking = text.length > MAX_CHUNK_SIZE;
+      setIsLargeDocument(needsChunking);
+      
+      if (needsChunking) {
+        // Dokument in Chunks aufteilen
+        const chunks = splitDocumentIntoChunks(text);
+        setTextChunks(chunks);
+        toast.info(`Großes Dokument erkannt: Wird in ${chunks.length} Teile aufgeteilt`);
+      }
+      
       if (stats.status === 'warning' || stats.status === 'critical') {
         setEditingMode('nurKorrektur');
       }
       
+      setProgress(100);
       toast.success('Dokument erfolgreich geladen');
     } catch (err) {
       console.error('Error processing file:', err);
@@ -86,6 +109,9 @@ const LektoratPage = () => {
       status: 'acceptable',
       statusText: 'Akzeptable Länge'
     });
+    setIsLargeDocument(false);
+    setTextChunks([]);
+    setChunkProgress({ completed: 0, total: 0 });
     
     if (showResults) {
       setShowResults(false);
@@ -98,6 +124,18 @@ const LektoratPage = () => {
   const handleTextChange = (text: string) => {
     setDocumentText(text);
     setDocumentStats(calculateDocumentStats(text));
+    
+    // Überprüfen, ob es sich um ein großes Dokument handelt
+    const needsChunking = text.length > MAX_CHUNK_SIZE;
+    setIsLargeDocument(needsChunking);
+    
+    if (needsChunking) {
+      // Dokument in Chunks aufteilen
+      const chunks = splitDocumentIntoChunks(text);
+      setTextChunks(chunks);
+    } else {
+      setTextChunks([]);
+    }
   };
 
   const handleModeChange = (mode: 'standard' | 'nurKorrektur' | 'kochbuch') => {
@@ -136,37 +174,67 @@ const LektoratPage = () => {
     setError(null);
     
     try {
-      const prompt = generatePrompt(documentText, editingMode, selectedModel);
-      console.log(`Starte Anfrage mit Modell: ${selectedModel}`);
-      
-      const apiResponse = await callOpenAI(
-        prompt, 
-        apiKey, 
-        systemMessage, 
-        selectedModel,
-        glossaryEntries
-      );
-      
-      if (!apiResponse) {
-        throw new Error('Keine Antwort von der API erhalten');
-      }
-      
-      const result = processLektoratResponse(`LEKTORIERTER TEXT:
+      if (isLargeDocument && textChunks.length > 0) {
+        // Verarbeitung großer Dokumente in Chunks
+        toast.info(`Verarbeitung in ${textChunks.length} Teilen gestartet`);
+        setChunkProgress({ completed: 0, total: textChunks.length });
+        
+        const { processedChunks, allChanges } = await processChunks(
+          textChunks,
+          apiKey,
+          editingMode,
+          selectedModel,
+          systemMessage,
+          glossaryEntries,
+          (completed, total) => {
+            setChunkProgress({ completed, total });
+            setProgress(Math.round((completed / total) * 100));
+          }
+        );
+        
+        // Zusammenführen der Ergebnisse
+        const mergedText = mergeProcessedChunks(processedChunks);
+        const mergedChangeItems = mergeChanges(allChanges);
+        
+        setEditedText(removeMarkdown(mergedText));
+        setChanges(mergedChangeItems);
+        
+        toast.success(`Lektorat für alle ${textChunks.length} Teile abgeschlossen`);
+      } else {
+        // Normale Verarbeitung für kleinere Dokumente
+        const prompt = generatePrompt(documentText, editingMode, selectedModel);
+        console.log(`Starte Anfrage mit Modell: ${selectedModel}`);
+        
+        const apiResponse = await callOpenAI(
+          prompt, 
+          apiKey, 
+          systemMessage, 
+          selectedModel,
+          glossaryEntries
+        );
+        
+        if (!apiResponse) {
+          throw new Error('Keine Antwort von der API erhalten');
+        }
+        
+        const result = processLektoratResponse(`LEKTORIERTER TEXT:
 ${apiResponse.text}
 
 ÄNDERUNGEN:
 ${apiResponse.changes}`);
-      
-      setEditedText(removeMarkdown(result.text));
-      setChanges(result.changes);
-      
-      toast.success('Text erfolgreich lektoriert');
+        
+        setEditedText(removeMarkdown(result.text));
+        setChanges(result.changes);
+        
+        toast.success('Text erfolgreich lektoriert');
+      }
     } catch (err) {
       console.error('Error processing text:', err);
       setError(`Fehler beim Lektorieren: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
       toast.error(`Lektorat fehlgeschlagen: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
     } finally {
       setIsProcessing(false);
+      setChunkProgress({ completed: 0, total: 0 });
     }
   };
 
@@ -228,6 +296,27 @@ ${apiResponse.changes}`);
                 progress={progress}
               />
               
+              {isLargeDocument && (
+                <div className="my-3 p-3 border rounded-lg bg-blue-50 text-blue-800">
+                  <p className="text-sm font-medium">
+                    Großes Dokument erkannt: Das Dokument wird in {textChunks.length} Teile aufgeteilt und nacheinander verarbeitet.
+                  </p>
+                  {chunkProgress.total > 0 && (
+                    <div className="mt-2">
+                      <div className="text-xs text-blue-600">
+                        Bearbeite Teil {chunkProgress.completed} von {chunkProgress.total}
+                      </div>
+                      <div className="w-full bg-blue-200 rounded-full h-2 mt-1">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full" 
+                          style={{ width: `${(chunkProgress.completed / chunkProgress.total) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <TextEditor 
                 text={documentText}
                 onTextChange={handleTextChange}
@@ -240,7 +329,9 @@ ${apiResponse.changes}`);
                   onClick={processText}
                   disabled={!documentText.trim() || isProcessing}
                 >
-                  KI Lektorat starten
+                  {isLargeDocument 
+                    ? `Lektorat für ${textChunks.length} Teile starten` 
+                    : 'KI Lektorat starten'}
                 </button>
                 
                 {!showApiKeyInput && (
@@ -266,6 +357,7 @@ ${apiResponse.changes}`);
               changes={changes}
               error={error}
               fileName={fileName.replace(/\.docx$/, '') || 'lektorierter-text'}
+              chunkProgress={isLargeDocument ? chunkProgress : undefined}
             />
           </div>
         )}
