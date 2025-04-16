@@ -41,10 +41,10 @@ export const callOpenAI = async (
     }
     
     // Create proper headers object
-    const headers = {
+    const headers = new Headers({
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey.trim()}`
-    };
+    });
     
     // Prepare the request body
     const requestBody = {

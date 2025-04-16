@@ -76,7 +76,9 @@ const UploadZone = ({
   return (
     <div className="w-full">
       <div 
-        className={`upload-zone p-8 text-center ${isDragOver ? 'upload-zone-active' : ''}`}
+        className={`border-2 border-dashed rounded-lg p-8 text-center ${
+          isDragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'
+        } transition-colors cursor-pointer`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
