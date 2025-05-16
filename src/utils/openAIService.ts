@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 
 interface OpenAIResponse {
@@ -51,9 +50,18 @@ export const callOpenAI = async (
       'Authorization': `Bearer ${apiKey.trim()}`
     });
     
+    // Handle correct model mapping for API calls
+    let apiModel = model;
+    // Ensure we're using the correct model names for the OpenAI API
+    if (model === 'gpt-4.1') {
+      apiModel = 'gpt-4-turbo';
+    } else if (model === 'gpt-4.1-mini') {
+      apiModel = 'gpt-4-turbo-mini';
+    }
+    
     // Prepare the request body
     const requestBody = {
-      model: model,
+      model: apiModel,
       messages: [
         {
           role: 'system',
@@ -69,7 +77,7 @@ export const callOpenAI = async (
     };
     
     console.log('Sending request to OpenAI API...');
-    console.log('Request model:', model);
+    console.log('Request model:', apiModel);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

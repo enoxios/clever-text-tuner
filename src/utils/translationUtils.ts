@@ -35,6 +35,15 @@ export const generateTranslationPrompt = (
       styleInstruction = 'Erstelle eine ausgewogene Übersetzung mit natürlichem Sprachfluss, die sowohl präzise als auch lesbar ist.';
   }
 
+  // Get the correct model identifier for prompt
+  let promptModel = model;
+  // Map display model names to API model names for the prompt
+  if (model === 'gpt-4.1') {
+    promptModel = 'gpt-4-turbo';
+  } else if (model === 'gpt-4.1-mini') {
+    promptModel = 'gpt-4-turbo-mini';
+  }
+
   const promptTemplate = `
 ${languageInstruction} ins ${getLanguageName(targetLanguage)}.
 
@@ -69,7 +78,7 @@ Hier ist der zu übersetzende Text:
 
 ${text}`;
 
-  return `@${model} ${promptTemplate}`;
+  return `@${promptModel} ${promptTemplate}`;
 };
 
 /**
