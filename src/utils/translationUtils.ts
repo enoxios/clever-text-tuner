@@ -1,4 +1,3 @@
-
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType } from 'docx';
 import { removeMarkdown, type TextChunk, mergeProcessedChunks } from './documentUtils';
 import { callOpenAI } from './openAIService';
@@ -224,80 +223,97 @@ Strukturiere deine Antwort in zwei klar getrennte Teile: "ÜBERSETZTER TEXT:" un
 };
 
 /**
- * Generate a Word document with original and translated text
+ * Generate a Word document with only the translated text
  */
 export const generateTranslationDocument = async (
   originalText: string,
   translatedText: string,
   notes: { text: string; isCategory: boolean }[],
   sourceLang: string,
-  targetLang: string
+  targetLang: string,
+  includeOriginal: boolean = false
 ): Promise<Blob> => {
   // Split texts into paragraphs
-  const originalParagraphs = originalText.split('\n\n');
   const translatedParagraphs = translatedText.split('\n\n');
   
   // Create document sections
-  const docSections: Paragraph[] = [
-    new Paragraph({
-      text: 'Übersetzung',
-      heading: HeadingLevel.HEADING_1,
-      spacing: { after: 200 },
-    }),
-    
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: `Original: ${sourceLang} → Übersetzung: ${targetLang}`,
-          bold: true,
-        }),
-      ],
-      spacing: { after: 400 },
-    }),
-  ];
+  const docSections: Paragraph[] = [];
   
-  // Create side-by-side table for each paragraph
-  for (let i = 0; i < Math.max(originalParagraphs.length, translatedParagraphs.length); i++) {
-    const originalPara = originalParagraphs[i] || '';
-    const translatedPara = translatedParagraphs[i] || '';
+  // If original text should be included
+  if (includeOriginal) {
+    const originalParagraphs = originalText.split('\n\n');
     
-    // Original text heading
     docSections.push(
       new Paragraph({
-        text: 'Original:',
-        heading: HeadingLevel.HEADING_3,
-        spacing: { after: 120 },
-      })
-    );
-    
-    // Original text content
-    docSections.push(
+        text: 'Übersetzung',
+        heading: HeadingLevel.HEADING_1,
+        spacing: { after: 200 },
+      }),
+      
       new Paragraph({
-        children: [new TextRun(originalPara)],
-        spacing: { after: 240 },
-      })
-    );
-    
-    // Translated text heading
-    docSections.push(
-      new Paragraph({
-        text: 'Übersetzung:',
-        heading: HeadingLevel.HEADING_3,
-        spacing: { after: 120 },
-      })
-    );
-    
-    // Translated text content
-    docSections.push(
-      new Paragraph({
-        children: [new TextRun(translatedPara)],
+        children: [
+          new TextRun({
+            text: `Original: ${sourceLang} → Übersetzung: ${targetLang}`,
+            bold: true,
+          }),
+        ],
         spacing: { after: 400 },
       })
     );
+    
+    // Create side-by-side sections for each paragraph
+    for (let i = 0; i < Math.max(originalParagraphs.length, translatedParagraphs.length); i++) {
+      const originalPara = originalParagraphs[i] || '';
+      const translatedPara = translatedParagraphs[i] || '';
+      
+      // Original text heading
+      docSections.push(
+        new Paragraph({
+          text: 'Original:',
+          heading: HeadingLevel.HEADING_3,
+          spacing: { after: 120 },
+        })
+      );
+      
+      // Original text content
+      docSections.push(
+        new Paragraph({
+          children: [new TextRun(originalPara)],
+          spacing: { after: 240 },
+        })
+      );
+      
+      // Translated text heading
+      docSections.push(
+        new Paragraph({
+          text: 'Übersetzung:',
+          heading: HeadingLevel.HEADING_3,
+          spacing: { after: 120 },
+        })
+      );
+      
+      // Translated text content
+      docSections.push(
+        new Paragraph({
+          children: [new TextRun(translatedPara)],
+          spacing: { after: 400 },
+        })
+      );
+    }
+  } else {
+    // Add only translated text paragraphs
+    for (const translatedPara of translatedParagraphs) {
+      docSections.push(
+        new Paragraph({
+          children: [new TextRun(translatedPara)],
+          spacing: { after: 200 },
+        })
+      );
+    }
   }
   
-  // Add notes section if there are notes
-  if (notes.length > 0) {
+  // Add notes section if there are notes and original is included
+  if (notes.length > 0 && includeOriginal) {
     docSections.push(
       new Paragraph({
         text: 'Anmerkungen zur Übersetzung',
@@ -357,7 +373,8 @@ export const downloadTranslationDocument = async (
   notes: { text: string; isCategory: boolean }[],
   fileName = 'uebersetzung',
   sourceLang: string,
-  targetLang: string
+  targetLang: string,
+  includeOriginal: boolean = false
 ): Promise<void> => {
   try {
     const blob = await generateTranslationDocument(
@@ -365,7 +382,8 @@ export const downloadTranslationDocument = async (
       translatedText,
       notes,
       sourceLang,
-      targetLang
+      targetLang,
+      includeOriginal
     );
     
     const url = URL.createObjectURL(blob);

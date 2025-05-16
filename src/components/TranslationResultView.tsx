@@ -50,7 +50,8 @@ const TranslationResultView = ({
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
-      await downloadTranslationDocument(originalText, translatedText, notes, fileName, sourceLang, targetLang);
+      // Pass false to includeOriginal param to download only the translated text
+      await downloadTranslationDocument(originalText, translatedText, notes, fileName, sourceLang, targetLang, false);
     } catch (err) {
       console.error('Download error:', err);
     } finally {
