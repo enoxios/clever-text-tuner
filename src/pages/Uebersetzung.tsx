@@ -4,37 +4,33 @@ import { toast } from 'sonner';
 import Navigation from '@/components/Navigation';
 import UploadZone from '@/components/UploadZone';
 import DocumentStats from '@/components/DocumentStats';
-import EditingTools from '@/components/EditingTools';
+import LanguageSelector from '@/components/LanguageSelector';
 import TextEditor from '@/components/TextEditor';
-import ResultView from '@/components/ResultView';
+import TranslationResultView from '@/components/TranslationResultView';
 import GlossaryUpload from '@/components/GlossaryUpload';
 import { 
   extractTextFromDocx, 
   calculateDocumentStats,
-  processLektoratResponse,
-  generatePrompt,
   removeMarkdown,
   type DocumentStats as DocumentStatsType,
-  type ChangeItem,
   type TextChunk,
   splitDocumentIntoChunks,
   mergeProcessedChunks,
-  mergeChanges,
   MAX_CHUNK_SIZE
 } from '@/utils/documentUtils';
-import { callOpenAI, processChunks } from '@/utils/openAIService';
+import { translateText, processTranslationChunks } from '@/utils/translationUtils';
 
 interface GlossaryEntry {
   term: string;
   explanation: string;
 }
 
-const LektoratPage = () => {
+const UebersetzungPage = () => {
   const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
   const [documentText, setDocumentText] = useState<string>('');
-  const [originalText, setOriginalText] = useState<string>(''); // Store original text for comparison
+  const [originalText, setOriginalText] = useState<string>('');
   const [documentStats, setDocumentStats] = useState<DocumentStatsType>({
     charCount: 0,
     wordCount: 0,
@@ -42,14 +38,15 @@ const LektoratPage = () => {
     statusText: 'Akzeptable Länge'
   });
   
-  const [editingMode, setEditingMode] = useState<'standard' | 'nurKorrektur' | 'kochbuch'>('standard');
+  const [translationStyle, setTranslationStyle] = useState<'standard' | 'literary' | 'technical'>('standard');
   const [selectedModel, setSelectedModel] = useState<string>('gpt-4o');
-  const [systemMessage, setSystemMessage] = useState<string>('Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".');
+  const [sourceLanguage, setSourceLanguage] = useState<string>('auto');
+  const [targetLanguage, setTargetLanguage] = useState<string>('en');
   
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [showResults, setShowResults] = useState<boolean>(false);
-  const [editedText, setEditedText] = useState<string>('');
-  const [changes, setChanges] = useState<ChangeItem[]>([]);
+  const [translatedText, setTranslatedText] = useState<string>('');
+  const [notes, setNotes] = useState<{text: string; isCategory: boolean}[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string>('');
   const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(false);
@@ -69,7 +66,7 @@ const LektoratPage = () => {
       setProgress(50);
       
       setDocumentText(text);
-      setOriginalText(text); // Save original text
+      setOriginalText(text);
       const stats = calculateDocumentStats(text);
       setDocumentStats(stats);
       
@@ -80,10 +77,6 @@ const LektoratPage = () => {
         const chunks = splitDocumentIntoChunks(text);
         setTextChunks(chunks);
         toast.info(`Großes Dokument erkannt: Wird in ${chunks.length} Teile aufgeteilt`);
-      }
-      
-      if (stats.status === 'warning' || stats.status === 'critical') {
-        setEditingMode('nurKorrektur');
       }
       
       setProgress(100);
@@ -113,8 +106,8 @@ const LektoratPage = () => {
     
     if (showResults) {
       setShowResults(false);
-      setEditedText('');
-      setChanges([]);
+      setTranslatedText('');
+      setNotes([]);
       setError(null);
     }
     
@@ -136,9 +129,9 @@ const LektoratPage = () => {
     }
   };
 
-  const handleModeChange = (mode: 'standard' | 'nurKorrektur' | 'kochbuch') => {
-    console.log('Mode changed to:', mode);
-    setEditingMode(mode);
+  const handleStyleChange = (style: 'standard' | 'literary' | 'technical') => {
+    console.log('Style changed to:', style);
+    setTranslationStyle(style);
   };
 
   const handleModelChange = (model: string) => {
@@ -146,11 +139,6 @@ const LektoratPage = () => {
     setSelectedModel(model);
   };
   
-  const handleSystemMessageChange = (message: string) => {
-    console.log('System message changed to:', message);
-    setSystemMessage(message);
-  };
-
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newKey = e.target.value;
     if (!newKey.includes('Fehler')) {
@@ -158,9 +146,9 @@ const LektoratPage = () => {
     }
   };
 
-  const processText = async () => {
+  const processTranslation = async () => {
     if (!documentText.trim()) {
-      toast.error('Kein Text zum Lektorieren vorhanden');
+      toast.error('Kein Text zum Übersetzen vorhanden');
       return;
     }
 
@@ -183,15 +171,16 @@ const LektoratPage = () => {
     
     try {
       if (isLargeDocument && textChunks.length > 0) {
-        toast.info(`Verarbeitung in ${textChunks.length} Teilen gestartet`);
+        toast.info(`Übersetzung in ${textChunks.length} Teilen gestartet`);
         setChunkProgress({ completed: 0, total: textChunks.length });
         
-        const { processedChunks, allChanges } = await processChunks(
+        const { processedChunks, allNotes } = await processTranslationChunks(
           textChunks,
           apiKey,
-          editingMode,
+          translationStyle,
+          sourceLanguage,
+          targetLanguage,
           selectedModel,
-          systemMessage,
           glossaryEntries,
           (completed, total) => {
             setChunkProgress({ completed, total });
@@ -200,43 +189,35 @@ const LektoratPage = () => {
         );
         
         const mergedText = mergeProcessedChunks(processedChunks);
-        const mergedChangeItems = mergeChanges(allChanges);
         
-        setEditedText(removeMarkdown(mergedText));
-        setChanges(mergedChangeItems);
+        setTranslatedText(removeMarkdown(mergedText));
+        setNotes(allNotes.flat());
         
-        toast.success(`Lektorat für alle ${textChunks.length} Teile abgeschlossen`);
+        toast.success(`Übersetzung für alle ${textChunks.length} Teile abgeschlossen`);
       } else {
-        const prompt = generatePrompt(documentText, editingMode, selectedModel);
-        console.log(`Starte Anfrage mit Modell: ${selectedModel}`);
-        
-        const apiResponse = await callOpenAI(
-          prompt, 
-          apiKey, 
-          systemMessage, 
+        const response = await translateText(
+          documentText,
+          apiKey,
+          translationStyle,
+          sourceLanguage,
+          targetLanguage,
           selectedModel,
           glossaryEntries
         );
         
-        if (!apiResponse) {
+        if (!response) {
           throw new Error('Keine Antwort von der API erhalten');
         }
         
-        const result = processLektoratResponse(`LEKTORIERTER TEXT:
-${apiResponse.text}
-
-ÄNDERUNGEN:
-${apiResponse.changes}`);
+        setTranslatedText(removeMarkdown(response.translatedText));
+        setNotes(response.notes);
         
-        setEditedText(removeMarkdown(result.text));
-        setChanges(result.changes);
-        
-        toast.success('Text erfolgreich lektoriert');
+        toast.success('Text erfolgreich übersetzt');
       }
     } catch (err) {
-      console.error('Error processing text:', err);
-      setError(`Fehler beim Lektorieren: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
-      toast.error(`Lektorat fehlgeschlagen: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
+      console.error('Error translating text:', err);
+      setError(`Fehler beim Übersetzen: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
+      toast.error(`Übersetzung fehlgeschlagen: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
     } finally {
       setIsProcessing(false);
       setChunkProgress({ completed: 0, total: 0 });
@@ -251,19 +232,21 @@ ${apiResponse.changes}`);
           alt="GNB Logo" 
           className="h-10 md:h-12" 
         />
-        <h1 className="text-2xl md:text-3xl font-bold text-center">GNB KI-Lektorat</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-center">GNB KI-Übersetzung</h1>
       </div>
       
       <Navigation />
       
       <div className="space-y-8">
         <div className="card glass-card p-6 rounded-xl shadow-sm">
-          <EditingTools 
-            onModeChange={handleModeChange} 
+          <LanguageSelector 
+            sourceLanguage={sourceLanguage}
+            targetLanguage={targetLanguage}
+            onSourceLanguageChange={setSourceLanguage}
+            onTargetLanguageChange={setTargetLanguage}
+            onStyleChange={handleStyleChange}
             onModelChange={handleModelChange}
-            onSystemMessageChange={handleSystemMessageChange}
-            defaultSystemMessage={systemMessage}
-            initialMode={editingMode}
+            initialStyle={translationStyle}
             disabled={isProcessing}
           />
           
@@ -333,12 +316,12 @@ ${apiResponse.changes}`);
               <div className="flex gap-4 mt-4">
                 <button
                   className="flex-1 bg-gnb-primary hover:bg-gnb-secondary text-white py-2 px-6 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={processText}
+                  onClick={processTranslation}
                   disabled={!documentText.trim() || isProcessing}
                 >
                   {isLargeDocument 
-                    ? `Lektorat für ${textChunks.length} Teile starten` 
-                    : 'KI Lektorat starten'}
+                    ? `Übersetzung für ${textChunks.length} Teile starten` 
+                    : 'KI-Übersetzung starten'}
                 </button>
                 
                 {!showApiKeyInput && (
@@ -356,14 +339,16 @@ ${apiResponse.changes}`);
         
         {showResults && (
           <div className="card glass-card p-6 rounded-xl shadow-sm">
-            <h2 className="text-xl font-semibold mb-4">Lektorierter Text</h2>
-            <ResultView 
+            <h2 className="text-xl font-semibold mb-4">Übersetzter Text</h2>
+            <TranslationResultView 
               isLoading={isProcessing}
               originalText={originalText}
-              editedText={editedText}
-              changes={changes}
+              translatedText={translatedText}
+              notes={notes}
               error={error}
-              fileName={fileName.replace(/\.docx$/, '') || 'lektorierter-text'}
+              fileName={fileName.replace(/\.docx$/, '') || 'uebersetzter-text'}
+              sourceLang={sourceLanguage === 'auto' ? 'Erkannt' : sourceLanguage}
+              targetLang={targetLanguage}
               chunkProgress={isLargeDocument ? chunkProgress : undefined}
             />
           </div>
@@ -373,4 +358,4 @@ ${apiResponse.changes}`);
   );
 };
 
-export default LektoratPage;
+export default UebersetzungPage;
