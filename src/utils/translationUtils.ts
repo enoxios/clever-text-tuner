@@ -1,4 +1,5 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType } from 'docx';
+
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType, Break } from 'docx';
 import { removeMarkdown, type TextChunk, mergeProcessedChunks } from './documentUtils';
 import { callOpenAI } from './openAIService';
 
@@ -242,7 +243,7 @@ export const generateTranslationDocument = async (
   targetLang: string,
   includeOriginal: boolean = false
 ): Promise<Blob> => {
-  // Split texts into paragraphs
+  // Split texts into paragraphs (double line breaks)
   const translatedParagraphs = translatedText.split('\n\n');
   
   // Create document sections
@@ -284,13 +285,33 @@ export const generateTranslationDocument = async (
         })
       );
       
-      // Original text content
-      docSections.push(
-        new Paragraph({
-          children: [new TextRun(originalPara)],
-          spacing: { after: 240 },
-        })
-      );
+      // Original text content - handle line breaks within paragraphs
+      if (originalPara.includes('\n')) {
+        // Split by single line breaks and create TextRun elements with line breaks
+        const lines = originalPara.split('\n');
+        const children: TextRun[] = [];
+        
+        lines.forEach((line, idx) => {
+          children.push(new TextRun(line));
+          if (idx < lines.length - 1) {
+            children.push(new TextRun({ text: "", break: 1 }));
+          }
+        });
+        
+        docSections.push(
+          new Paragraph({
+            children,
+            spacing: { after: 240 },
+          })
+        );
+      } else {
+        docSections.push(
+          new Paragraph({
+            children: [new TextRun(originalPara)],
+            spacing: { after: 240 },
+          })
+        );
+      }
       
       // Translated text heading
       docSections.push(
@@ -301,23 +322,63 @@ export const generateTranslationDocument = async (
         })
       );
       
-      // Translated text content
-      docSections.push(
-        new Paragraph({
-          children: [new TextRun(translatedPara)],
-          spacing: { after: 400 },
-        })
-      );
+      // Translated text content - handle line breaks within paragraphs
+      if (translatedPara.includes('\n')) {
+        // Split by single line breaks and create TextRun elements with line breaks
+        const lines = translatedPara.split('\n');
+        const children: TextRun[] = [];
+        
+        lines.forEach((line, idx) => {
+          children.push(new TextRun(line));
+          if (idx < lines.length - 1) {
+            children.push(new TextRun({ text: "", break: 1 }));
+          }
+        });
+        
+        docSections.push(
+          new Paragraph({
+            children,
+            spacing: { after: 400 },
+          })
+        );
+      } else {
+        docSections.push(
+          new Paragraph({
+            children: [new TextRun(translatedPara)],
+            spacing: { after: 400 },
+          })
+        );
+      }
     }
   } else {
-    // Add only translated text paragraphs
+    // Add only translated text paragraphs, preserving line breaks
     for (const translatedPara of translatedParagraphs) {
-      docSections.push(
-        new Paragraph({
-          children: [new TextRun(translatedPara)],
-          spacing: { after: 200 },
-        })
-      );
+      if (translatedPara.includes('\n')) {
+        // Handle line breaks within paragraphs
+        const lines = translatedPara.split('\n');
+        const children: TextRun[] = [];
+        
+        lines.forEach((line, idx) => {
+          children.push(new TextRun(line));
+          if (idx < lines.length - 1) {
+            children.push(new TextRun({ text: "", break: 1 }));
+          }
+        });
+        
+        docSections.push(
+          new Paragraph({
+            children,
+            spacing: { after: 200 },
+          })
+        );
+      } else {
+        docSections.push(
+          new Paragraph({
+            children: [new TextRun(translatedPara)],
+            spacing: { after: 200 },
+          })
+        );
+      }
     }
   }
   
