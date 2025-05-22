@@ -10,6 +10,15 @@ interface EditingToolsProps {
   disabled?: boolean;
 }
 
+// Model options with consistent naming to match LanguageSelector.tsx
+const models = [
+  { value: 'gpt-4o', label: 'GPT-4o (empfohlen)', description: 'Aktuellstes OpenAI-Modell mit höchster Qualität' },
+  { value: 'gpt-4o-mini', label: 'GPT-4o mini (schneller)', description: 'Schnelleres und kostengünstigeres Modell' },
+  { value: 'gpt-4.5-preview', label: 'GPT-4.5 Turbo (leistungsstark)', description: 'Leistungsstarkes Modell mit erweiterten Fähigkeiten' },
+  { value: 'gpt-4.1', label: 'GPT-4.1 (neues Modell)', description: 'Neues Modell mit fortschrittlichen Fähigkeiten' },
+  { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini (schneller)', description: 'Schnellere Version des GPT-4.1 Modells' },
+];
+
 const EditingTools = ({ 
   onModeChange, 
   onModelChange,
@@ -23,6 +32,7 @@ const EditingTools = ({
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [systemMessage, setSystemMessage] = useState(defaultSystemMessage);
   const [showModeDropdown, setShowModeDropdown] = useState(false);
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
   
   const standardSystemMessage = 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Führe ein umfassendes Lektorat mit inhaltlicher und sprachlicher Überarbeitung durch. Achte auf Struktur, Logik, Stil und Wortwahl. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
   
@@ -103,9 +113,13 @@ Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" un
     setShowModeDropdown(false);
   };
   
-  const handleModelChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setActiveModel(event.target.value);
-    onModelChange(event.target.value);
+  const handleModelChange = (model: string) => {
+    if (disabled) return;
+    
+    console.log('Model changed to:', model);
+    setActiveModel(model);
+    onModelChange(model);
+    setShowModelDropdown(false);
   };
   
   const handleSystemMessageChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -115,13 +129,9 @@ Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" un
     }
   };
   
-  const getModelDescription = (model: string): string => {
-    const descriptions: Record<string, string> = {
-      'gpt-4o': 'Aktuellstes OpenAI-Modell mit höchster Qualität',
-      'gpt-4o-mini': 'Schnelleres und kostengünstigeres Modell'
-    };
-    
-    return descriptions[model] || `${model}: Ausgewähltes KI-Modell für das Lektorat.`;
+  const getModelDescription = (modelValue: string): string => {
+    const model = models.find(m => m.value === modelValue);
+    return model ? model.description : `${modelValue}: Ausgewähltes KI-Modell für das Lektorat.`;
   };
   
   const getModeDescription = (mode: 'standard' | 'nurKorrektur' | 'kochbuch'): string => {
@@ -225,17 +235,34 @@ Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" un
         </div>
         
         <div>
-          <label htmlFor="llm-selector" className="block mb-2 font-medium">OpenAI-Modell auswählen:</label>
-          <select 
-            id="llm-selector" 
-            className="w-full p-2 border rounded-lg bg-background"
-            onChange={handleModelChange}
-            disabled={disabled}
-            value={activeModel}
-          >
-            <option value="gpt-4o">GPT-4o (Empfohlen)</option>
-            <option value="gpt-4o-mini">GPT-4o Mini</option>
-          </select>
+          <label className="block mb-2 font-medium">OpenAI-Modell auswählen:</label>
+          <div className="relative">
+            <button 
+              onClick={() => setShowModelDropdown(!showModelDropdown)}
+              disabled={disabled}
+              className="w-full flex justify-between items-center py-2 px-4 border bg-background rounded-lg hover:bg-muted transition-colors"
+            >
+              <span>{models.find(m => m.value === activeModel)?.label || activeModel}</span>
+              <ChevronDown className="h-4 w-4" />
+            </button>
+            
+            {showModelDropdown && (
+              <div className="absolute z-10 w-full mt-1 bg-background border rounded-lg shadow-lg">
+                <ul>
+                  {models.map((model) => (
+                    <li key={model.value}>
+                      <button 
+                        className={`w-full text-left px-4 py-2 hover:bg-muted transition-colors ${activeModel === model.value ? 'bg-muted/50' : ''}`}
+                        onClick={() => handleModelChange(model.value)}
+                      >
+                        {model.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             {getModelDescription(activeModel)}
           </p>
