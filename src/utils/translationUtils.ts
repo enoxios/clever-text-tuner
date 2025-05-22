@@ -1,5 +1,4 @@
-
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType, Break } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType } from 'docx';
 import { removeMarkdown, type TextChunk, mergeProcessedChunks } from './documentUtils';
 import { callOpenAI } from './openAIService';
 
@@ -294,6 +293,7 @@ export const generateTranslationDocument = async (
         lines.forEach((line, idx) => {
           children.push(new TextRun(line));
           if (idx < lines.length - 1) {
+            // Use line break property instead of Break object
             children.push(new TextRun({ text: "", break: 1 }));
           }
         });
@@ -331,6 +331,7 @@ export const generateTranslationDocument = async (
         lines.forEach((line, idx) => {
           children.push(new TextRun(line));
           if (idx < lines.length - 1) {
+            // Use line break property instead of Break object
             children.push(new TextRun({ text: "", break: 1 }));
           }
         });
@@ -361,6 +362,7 @@ export const generateTranslationDocument = async (
         lines.forEach((line, idx) => {
           children.push(new TextRun(line));
           if (idx < lines.length - 1) {
+            // Use line break property instead of Break object
             children.push(new TextRun({ text: "", break: 1 }));
           }
         });
