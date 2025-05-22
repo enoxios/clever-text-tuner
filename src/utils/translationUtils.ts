@@ -284,7 +284,7 @@ export const generateTranslationDocument = async (
         })
       );
       
-      // Original text content - properly handle line breaks within paragraphs
+      // Original text content with proper paragraph handling
       if (originalPara.includes('\n')) {
         const lines = originalPara.split('\n');
         const children: TextRun[] = [];
@@ -320,7 +320,7 @@ export const generateTranslationDocument = async (
         })
       );
       
-      // Translated text content - properly handle line breaks within paragraphs
+      // Translated text content with proper paragraph handling
       if (translatedPara.includes('\n')) {
         const lines = translatedPara.split('\n');
         const children: TextRun[] = [];
@@ -356,7 +356,7 @@ export const generateTranslationDocument = async (
       );
     }
   } else {
-    // Add only translated text paragraphs
+    // Only translated text - improved paragraph handling
     const translatedParagraphs = translatedText.split('\n\n');
     
     for (const para of translatedParagraphs) {
