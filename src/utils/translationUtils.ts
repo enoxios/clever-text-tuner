@@ -1,3 +1,4 @@
+
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType } from 'docx';
 import { removeMarkdown, type TextChunk, mergeProcessedChunks } from './documentUtils';
 import { callOpenAI } from './openAIService';
@@ -242,21 +243,16 @@ export const generateTranslationDocument = async (
   targetLang: string,
   includeOriginal: boolean = false
 ): Promise<Blob> => {
-  // Split texts into paragraphs (double line breaks)
-  const translatedParagraphs = translatedText.split('\n\n');
-  
   // Create document sections
   const docSections: Paragraph[] = [];
   
-  // If original text should be included
   if (includeOriginal) {
-    const originalParagraphs = originalText.split('\n\n');
-    
+    // Add title and language info
     docSections.push(
       new Paragraph({
         text: 'Übersetzung',
         heading: HeadingLevel.HEADING_1,
-        spacing: { after: 200 },
+        spacing: { after: 300 },
       }),
       
       new Paragraph({
@@ -266,9 +262,13 @@ export const generateTranslationDocument = async (
             bold: true,
           }),
         ],
-        spacing: { after: 400 },
+        spacing: { after: 500 },
       })
     );
+    
+    // Split texts into paragraphs (double line breaks)
+    const originalParagraphs = originalText.split('\n\n');
+    const translatedParagraphs = translatedText.split('\n\n');
     
     // Create side-by-side sections for each paragraph
     for (let i = 0; i < Math.max(originalParagraphs.length, translatedParagraphs.length); i++) {
@@ -280,20 +280,18 @@ export const generateTranslationDocument = async (
         new Paragraph({
           text: 'Original:',
           heading: HeadingLevel.HEADING_3,
-          spacing: { after: 120 },
+          spacing: { after: 200 },
         })
       );
       
-      // Original text content - handle line breaks within paragraphs
+      // Original text content - properly handle line breaks within paragraphs
       if (originalPara.includes('\n')) {
-        // Split by single line breaks and create TextRun elements with line breaks
         const lines = originalPara.split('\n');
         const children: TextRun[] = [];
         
         lines.forEach((line, idx) => {
           children.push(new TextRun(line));
           if (idx < lines.length - 1) {
-            // Use line break property instead of Break object
             children.push(new TextRun({ text: "", break: 1 }));
           }
         });
@@ -301,14 +299,14 @@ export const generateTranslationDocument = async (
         docSections.push(
           new Paragraph({
             children,
-            spacing: { after: 240 },
+            spacing: { after: 300 },
           })
         );
       } else {
         docSections.push(
           new Paragraph({
-            children: [new TextRun(originalPara)],
-            spacing: { after: 240 },
+            text: originalPara,
+            spacing: { after: 300 },
           })
         );
       }
@@ -318,20 +316,18 @@ export const generateTranslationDocument = async (
         new Paragraph({
           text: 'Übersetzung:',
           heading: HeadingLevel.HEADING_3,
-          spacing: { after: 120 },
+          spacing: { after: 200 },
         })
       );
       
-      // Translated text content - handle line breaks within paragraphs
+      // Translated text content - properly handle line breaks within paragraphs
       if (translatedPara.includes('\n')) {
-        // Split by single line breaks and create TextRun elements with line breaks
         const lines = translatedPara.split('\n');
         const children: TextRun[] = [];
         
         lines.forEach((line, idx) => {
           children.push(new TextRun(line));
           if (idx < lines.length - 1) {
-            // Use line break property instead of Break object
             children.push(new TextRun({ text: "", break: 1 }));
           }
         });
@@ -339,30 +335,39 @@ export const generateTranslationDocument = async (
         docSections.push(
           new Paragraph({
             children,
-            spacing: { after: 400 },
+            spacing: { after: 500 },
           })
         );
       } else {
         docSections.push(
           new Paragraph({
-            children: [new TextRun(translatedPara)],
-            spacing: { after: 400 },
+            text: translatedPara,
+            spacing: { after: 500 },
           })
         );
       }
+      
+      // Add extra spacing between paragraph pairs
+      docSections.push(
+        new Paragraph({
+          text: '',
+          spacing: { after: 300 },
+        })
+      );
     }
   } else {
-    // Add only translated text paragraphs, preserving line breaks
-    for (const translatedPara of translatedParagraphs) {
-      if (translatedPara.includes('\n')) {
-        // Handle line breaks within paragraphs
-        const lines = translatedPara.split('\n');
+    // Add only translated text paragraphs
+    const translatedParagraphs = translatedText.split('\n\n');
+    
+    for (const para of translatedParagraphs) {
+      // Handle single line breaks within paragraphs
+      if (para.includes('\n')) {
+        const lines = para.split('\n');
         const children: TextRun[] = [];
         
         lines.forEach((line, idx) => {
           children.push(new TextRun(line));
           if (idx < lines.length - 1) {
-            // Use line break property instead of Break object
             children.push(new TextRun({ text: "", break: 1 }));
           }
         });
@@ -370,14 +375,14 @@ export const generateTranslationDocument = async (
         docSections.push(
           new Paragraph({
             children,
-            spacing: { after: 200 },
+            spacing: { after: 300 },
           })
         );
       } else {
         docSections.push(
           new Paragraph({
-            children: [new TextRun(translatedPara)],
-            spacing: { after: 200 },
+            text: para,
+            spacing: { after: 300 },
           })
         );
       }
@@ -390,7 +395,7 @@ export const generateTranslationDocument = async (
       new Paragraph({
         text: 'Anmerkungen zur Übersetzung',
         heading: HeadingLevel.HEADING_1,
-        spacing: { after: 200 },
+        spacing: { before: 500, after: 300 },
       })
     );
     
@@ -403,25 +408,21 @@ export const generateTranslationDocument = async (
           new Paragraph({
             text: currentCategory,
             heading: HeadingLevel.HEADING_2,
-            spacing: { after: 200 },
+            spacing: { before: 300, after: 200 },
           })
         );
       } else {
         docSections.push(
           new Paragraph({
-            children: [
-              new TextRun({
-                text: `• ${note.text}`,
-              }),
-            ],
-            spacing: { after: 120 },
+            text: `• ${note.text}`,
+            spacing: { after: 150 },
           })
         );
       }
     });
   }
   
-  // Create the document
+  // Create the document with proper sections
   const doc = new Document({
     sections: [
       {
