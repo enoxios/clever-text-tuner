@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { Copy, CheckCircle2, AlertCircle, FileDown, List, FileText } from 'lucide-react';
 import { ChangeItem, downloadWordDocument } from '@/utils/documentUtils';
@@ -27,6 +28,7 @@ const ResultView = ({
   const [isCopied, setIsCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [differences, setDifferences] = useState<TextDifference[]>([]);
+  const [includeChanges, setIncludeChanges] = useState(false);
   
   useEffect(() => {
     if (originalText && editedText) {
@@ -53,7 +55,7 @@ const ResultView = ({
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
-      await downloadWordDocument(editedText, changes, fileName);
+      await downloadWordDocument(editedText, changes, fileName, includeChanges);
     } catch (err) {
       console.error('Download error:', err);
     } finally {
@@ -193,44 +195,60 @@ const ResultView = ({
         </div>
       </div>
       
-      <div className="mt-4 flex justify-end gap-2">
-        <button 
-          onClick={handleDownload}
-          className="flex items-center gap-2 bg-gnb-primary hover:bg-gnb-secondary text-white py-2 px-4 rounded-md font-medium transition-colors"
-          disabled={isDownloading}
-        >
-          {isDownloading ? (
-            <>
-              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-              Wird heruntergeladen...
-            </>
-          ) : (
-            <>
-              <FileDown className="h-4 w-4" />
-              Als .DOCX Datei herunterladen
-            </>
-          )}
-        </button>
+      <div className="mt-4 flex justify-between items-center">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="includeChanges"
+            checked={includeChanges}
+            onChange={(e) => setIncludeChanges(e.target.checked)}
+            className="mr-2 h-4 w-4"
+          />
+          <label htmlFor="includeChanges" className="text-sm">
+            Änderungen im Dokument einschließen
+          </label>
+        </div>
         
-        <button 
-          onClick={handleCopyText}
-          className="flex items-center gap-2 bg-muted hover:bg-muted/80 text-foreground py-2 px-4 rounded-md font-medium transition-colors"
-        >
-          {isCopied ? (
-            <>
-              <CheckCircle2 className="h-4 w-4" />
-              Text kopiert!
-            </>
-          ) : (
-            <>
-              <Copy className="h-4 w-4" />
-              Text kopieren
-            </>
-          )}
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={handleDownload}
+            className="flex items-center gap-2 bg-gnb-primary hover:bg-gnb-secondary text-white py-2 px-4 rounded-md font-medium transition-colors"
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <>
+                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                Wird heruntergeladen...
+              </>
+            ) : (
+              <>
+                <FileDown className="h-4 w-4" />
+                Als .DOCX Datei herunterladen
+              </>
+            )}
+          </button>
+          
+          <button 
+            onClick={handleCopyText}
+            className="flex items-center gap-2 bg-muted hover:bg-muted/80 text-foreground py-2 px-4 rounded-md font-medium transition-colors"
+          >
+            {isCopied ? (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                Text kopiert!
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4" />
+                Text kopieren
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
 export default ResultView;
+

@@ -306,80 +306,97 @@ ${text}`;
 };
 
 // Function to generate a Word document from lektorat results
+// Updated to make including changes optional
 export const generateWordDocument = async (
   editedText: string, 
-  changes: ChangeItem[]
+  changes: ChangeItem[],
+  includeChanges: boolean = false
 ): Promise<Blob> => {
-  const textParagraphs = editedText.split('\n\n').map(paragraph => 
-    new Paragraph({
-      children: [
-        new TextRun(paragraph)
-      ],
-    })
-  );
+  // Preserve paragraph formatting by splitting on double line breaks
+  const textParagraphs = editedText.split('\n\n').map(paragraph => {
+    // Handle single line breaks inside paragraphs (preserve formatting)
+    if (paragraph.includes('\n')) {
+      const lines = paragraph.split('\n');
+      return new Paragraph({
+        children: lines.flatMap((line, i) => [
+          new TextRun(line),
+          i < lines.length - 1 ? new TextRun({ text: "", break: 1 }) : []
+        ].flat()),
+      });
+    } else {
+      return new Paragraph({
+        children: [new TextRun(paragraph)],
+      });
+    }
+  });
 
-  const changeParagraphs: Paragraph[] = [];
-  let currentCategory = '';
+  const sections = [];
+  
+  // Always include the text paragraphs
+  sections.push({
+    properties: {
+      type: SectionType.CONTINUOUS,
+    },
+    children: [
+      ...textParagraphs,
+    ],
+  });
 
-  changes.forEach(change => {
-    if (change.isCategory) {
-      currentCategory = change.text;
+  // Only include changes if specified
+  if (includeChanges) {
+    const changeParagraphs: Paragraph[] = [];
+    let currentCategory = '';
+
+    if (changes.length > 0) {
       changeParagraphs.push(
         new Paragraph({
-          text: currentCategory,
-          heading: HeadingLevel.HEADING_2,
+          text: 'Vorgenommene Änderungen',
+          heading: HeadingLevel.HEADING_1,
           spacing: {
             after: 200,
           },
         })
       );
-    } else {
-      changeParagraphs.push(
+
+      changes.forEach(change => {
+        if (change.isCategory) {
+          currentCategory = change.text;
+          changeParagraphs.push(
+            new Paragraph({
+              text: currentCategory,
+              heading: HeadingLevel.HEADING_2,
+              spacing: {
+                after: 200,
+              },
+            })
+          );
+        } else {
+          changeParagraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `• ${change.text}`,
+                }),
+              ],
+              spacing: {
+                after: 120,
+              },
+            })
+          );
+        }
+      });
+
+      sections[0].children.push(
         new Paragraph({
-          children: [
-            new TextRun({
-              text: `• ${change.text}`,
-            }),
-          ],
-          spacing: {
-            after: 120,
-          },
-        })
+          children: [new TextRun({ text: '', break: 1 })],
+        }),
+        ...changeParagraphs
       );
     }
-  });
+  }
 
   const doc = new Document({
-    sections: [
-      {
-        properties: {
-          type: SectionType.CONTINUOUS,
-        },
-        children: [
-          new Paragraph({
-            text: 'Lektorierter Text',
-            heading: HeadingLevel.HEADING_1,
-            spacing: {
-              after: 200,
-            },
-          }),
-          ...textParagraphs,
-          
-          new Paragraph({
-            children: [new TextRun({ text: '', break: 1 })],
-          }),
-          
-          new Paragraph({
-            text: 'Vorgenommene Änderungen',
-            heading: HeadingLevel.HEADING_1,
-            spacing: {
-              after: 200,
-            },
-          }),
-          ...changeParagraphs,
-        ],
-      },
-    ],
+    sections,
   });
   
   return Packer.toBlob(doc);
@@ -389,10 +406,11 @@ export const generateWordDocument = async (
 export const downloadWordDocument = async (
   editedText: string, 
   changes: ChangeItem[], 
-  fileName = 'lektorierter-text'
+  fileName = 'lektorierter-text',
+  includeChanges: boolean = false
 ): Promise<void> => {
   try {
-    const blob = await generateWordDocument(editedText, changes);
+    const blob = await generateWordDocument(editedText, changes, includeChanges);
     
     const url = URL.createObjectURL(blob);
     
