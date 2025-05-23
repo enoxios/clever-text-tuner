@@ -1,6 +1,6 @@
 
 import { useState, useRef, DragEvent, ChangeEvent } from 'react';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, FileWarning, FileCheck } from 'lucide-react';
 
 interface UploadZoneProps {
   onFileSelect: (file: File) => void;
@@ -17,6 +17,7 @@ const UploadZone = ({
 }: UploadZoneProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
@@ -44,8 +45,33 @@ const UploadZone = ({
       setError(`Die Datei ist zu groß. Maximal ${maxFileSizeMB}MB erlaubt.`);
       return false;
     }
+
+    // Check for empty files
+    if (file.size === 0) {
+      setError(`Die Datei ist leer oder beschädigt.`);
+      return false;
+    }
     
     return true;
+  };
+
+  const processFile = async (file: File) => {
+    if (!validateFile(file)) {
+      return;
+    }
+
+    try {
+      setIsValidating(true);
+      
+      // Pass the file to the parent component
+      onFileSelect(file);
+      
+      setIsValidating(false);
+    } catch (error) {
+      console.error('Error validating file:', error);
+      setError('Die Datei konnte nicht verarbeitet werden. Bitte versuchen Sie eine andere Datei.');
+      setIsValidating(false);
+    }
   };
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -54,18 +80,14 @@ const UploadZone = ({
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
-      if (validateFile(file)) {
-        onFileSelect(file);
-      }
+      processFile(file);
     }
   };
 
   const handleFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      if (validateFile(file)) {
-        onFileSelect(file);
-      }
+      processFile(file);
     }
   };
 
@@ -93,7 +115,11 @@ const UploadZone = ({
         />
         
         <div className="mb-4 flex justify-center">
-          <Upload className="h-12 w-12 text-muted-foreground" strokeWidth={1.5} />
+          {isValidating ? (
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          ) : (
+            <Upload className="h-12 w-12 text-muted-foreground" strokeWidth={1.5} />
+          )}
         </div>
         
         <p className="mb-2">
@@ -108,11 +134,9 @@ const UploadZone = ({
       </div>
       
       {error && (
-        <div className="mt-2 text-sm text-destructive animate-fade-in">
-          <div className="flex items-center">
-            <X className="h-4 w-4 mr-1" />
-            {error}
-          </div>
+        <div className="mt-2 text-sm text-destructive animate-fade-in bg-destructive/5 p-2 rounded-md flex items-center">
+          <FileWarning className="h-4 w-4 mr-2 flex-shrink-0" />
+          <span>{error}</span>
         </div>
       )}
     </div>
