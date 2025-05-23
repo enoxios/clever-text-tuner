@@ -55,8 +55,8 @@ export const extractTextFromDocx = async (file: File): Promise<string> => {
         try {
           console.log('Attempting to extract text with default options...');
           const result = await mammoth.extractRawText({ 
-            arrayBuffer,
-            // Type-safe options only
+            arrayBuffer 
+            // Using only type-safe options
           });
           
           // Check if we actually got text content
@@ -72,15 +72,11 @@ export const extractTextFromDocx = async (file: File): Promise<string> => {
           // Fallback: Try with alternative options
           try {
             console.log('Attempting fallback extraction method...');
+            // Use simple configuration without styleMap
             const result = await mammoth.extractRawText({
-              arrayBuffer,
+              arrayBuffer
               // Using only type-safe options
-              styleMap: [
-                "p[style-name='Heading 1'] => h1:fresh",
-                "p[style-name='Heading 2'] => h2:fresh",
-                "p[style-name='Heading 3'] => h3:fresh",
-                "p => p:fresh"
-              ]
+              // Removed styleMap as it's not in the type definition
             });
             
             if (result.value.trim().length > 0) {
