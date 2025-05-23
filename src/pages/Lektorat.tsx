@@ -20,7 +20,8 @@ import {
   splitDocumentIntoChunks,
   mergeProcessedChunks,
   mergeChanges,
-  MAX_CHUNK_SIZE
+  MAX_CHUNK_SIZE,
+  type DocumentError
 } from '@/utils/documentUtils';
 import { callOpenAI, processChunks } from '@/utils/openAIService';
 
@@ -58,40 +59,61 @@ const LektoratPage = () => {
   const [isLargeDocument, setIsLargeDocument] = useState<boolean>(false);
   const [textChunks, setTextChunks] = useState<TextChunk[]>([]);
   const [chunkProgress, setChunkProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
+  const [manualInputMode, setManualInputMode] = useState<boolean>(false);
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
     setFileName(selectedFile.name);
     setProgress(10);
+    setManualInputMode(false);
     
     try {
+      toast.info('Verarbeite Dokument...');
       const text = await extractTextFromDocx(selectedFile);
       setProgress(50);
       
-      setDocumentText(text);
-      setOriginalText(text); // Save original text
-      const stats = calculateDocumentStats(text);
-      setDocumentStats(stats);
-      
-      const needsChunking = text.length > MAX_CHUNK_SIZE;
-      setIsLargeDocument(needsChunking);
-      
-      if (needsChunking) {
-        const chunks = splitDocumentIntoChunks(text);
-        setTextChunks(chunks);
-        toast.info(`Großes Dokument erkannt: Wird in ${chunks.length} Teile aufgeteilt`);
-      }
-      
-      if (stats.status === 'warning' || stats.status === 'critical') {
-        setEditingMode('nurKorrektur');
-      }
+      handleTextLoaded(text);
       
       setProgress(100);
       toast.success('Dokument erfolgreich geladen');
     } catch (err) {
       console.error('Error processing file:', err);
-      toast.error('Fehler beim Verarbeiten der Datei');
-      handleRemoveFile();
+      const errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler';
+      toast.error(`Fehler beim Verarbeiten der Datei: ${errorMessage}`);
+      
+      // Don't reset file info so user can see the error with the file name
+      setProgress(0);
+    }
+  };
+
+  const handleTextInput = (text: string) => {
+    setManualInputMode(true);
+    setFileName('Manueller Text');
+    setProgress(50);
+    
+    handleTextLoaded(text);
+    
+    setProgress(100);
+    toast.success('Text erfolgreich übernommen');
+  };
+
+  const handleTextLoaded = (text: string) => {
+    setDocumentText(text);
+    setOriginalText(text); // Save original text
+    const stats = calculateDocumentStats(text);
+    setDocumentStats(stats);
+    
+    const needsChunking = text.length > MAX_CHUNK_SIZE;
+    setIsLargeDocument(needsChunking);
+    
+    if (needsChunking) {
+      const chunks = splitDocumentIntoChunks(text);
+      setTextChunks(chunks);
+      toast.info(`Großes Dokument erkannt: Wird in ${chunks.length} Teile aufgeteilt`);
+    }
+    
+    if (stats.status === 'warning' || stats.status === 'critical') {
+      setEditingMode('nurKorrektur');
     }
   };
 
@@ -110,6 +132,7 @@ const LektoratPage = () => {
     setIsLargeDocument(false);
     setTextChunks([]);
     setChunkProgress({ completed: 0, total: 0 });
+    setManualInputMode(false);
     
     if (showResults) {
       setShowResults(false);
@@ -286,9 +309,12 @@ ${apiResponse.changes}`);
             </div>
           )}
           
-          {!file ? (
+          {!file && !manualInputMode ? (
             <div className="mt-6">
-              <UploadZone onFileSelect={handleFileSelect} />
+              <UploadZone 
+                onFileSelect={handleFileSelect} 
+                onTextInput={handleTextInput}
+              />
               <div className="mt-4">
                 <h3 className="text-sm font-medium mb-2">Optional: Glossar hochladen</h3>
                 <GlossaryUpload onGlossaryLoad={setGlossaryEntries} />

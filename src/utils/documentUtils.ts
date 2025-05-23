@@ -1,3 +1,4 @@
+
 import mammoth from 'mammoth';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType } from 'docx';
 
@@ -23,34 +24,95 @@ export interface TextChunk {
   index: number;
 }
 
+export interface DocumentError extends Error {
+  code?: string;
+  details?: string;
+}
+
 // Warning limit for document length
 export const WARNING_LIMIT = 14500; // Geschätzte Zeichenanzahl für 2900 Wörter
 export const CRITICAL_LIMIT = 150000;
 export const MAX_CHUNK_SIZE = 10000; // Geschätzte Zeichenanzahl für 2000 Wörter (5 Zeichen pro Wort im Durchschnitt)
 
-// Process Word document and extract text
+/**
+ * Enhanced document extraction with better error handling and fallback mechanisms
+ */
 export const extractTextFromDocx = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
     reader.onload = async (loadEvent) => {
       if (!loadEvent.target?.result) {
-        reject(new Error('Failed to read file'));
+        const error = new Error('Datei konnte nicht gelesen werden') as DocumentError;
+        error.code = 'FILE_READ_ERROR';
+        reject(error);
         return;
       }
       
       try {
         const arrayBuffer = loadEvent.target.result as ArrayBuffer;
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        resolve(result.value);
+        
+        // Try with default options first
+        try {
+          console.log('Attempting to extract text with default options...');
+          const result = await mammoth.extractRawText({ 
+            arrayBuffer,
+            includeDefaultStyleMap: true
+          });
+          
+          // Check if we actually got text content
+          if (result.value.trim().length === 0) {
+            throw new Error('Extracted text is empty');
+          }
+          
+          console.log('Successfully extracted text with default options');
+          resolve(result.value);
+        } catch (primaryError) {
+          console.error('Primary extraction failed:', primaryError);
+          
+          // Fallback: Try with alternative options
+          try {
+            console.log('Attempting fallback extraction method...');
+            const result = await mammoth.extractRawText({
+              arrayBuffer,
+              includeDefaultStyleMap: true,
+              ignoreEmptyParagraphs: false,
+              styleMap: [
+                "p[style-name='Heading 1'] => h1:fresh",
+                "p[style-name='Heading 2'] => h2:fresh",
+                "p[style-name='Heading 3'] => h3:fresh",
+                "p => p:fresh"
+              ]
+            });
+            
+            if (result.value.trim().length > 0) {
+              console.log('Successfully extracted text with fallback options');
+              resolve(result.value);
+              return;
+            }
+            
+            throw new Error('Fallback extraction produced empty text');
+          } catch (fallbackError) {
+            console.error('Fallback extraction also failed:', fallbackError);
+            const docError = new Error('Dokument enthält möglicherweise nicht unterstützte Elemente wie "Alternate Content" oder komplexe Formatierungen') as DocumentError;
+            docError.code = 'DOCUMENT_FORMAT_ERROR';
+            docError.details = primaryError instanceof Error ? primaryError.message : String(primaryError);
+            reject(docError);
+          }
+        }
       } catch (error) {
-        console.error('Error extracting text:', error);
-        reject(new Error('Failed to extract text from the Word document'));
+        console.error('Error in document processing pipeline:', error);
+        const docError = new Error('Fehler beim Verarbeiten des Dokuments') as DocumentError;
+        docError.code = 'PROCESSING_ERROR';
+        docError.details = error instanceof Error ? error.message : String(error);
+        reject(docError);
       }
     };
     
     reader.onerror = () => {
-      reject(new Error('Error reading the file'));
+      const error = new Error('Fehler beim Lesen der Datei') as DocumentError;
+      error.code = 'FILE_READ_ERROR';
+      reject(error);
     };
     
     reader.readAsArrayBuffer(file);
