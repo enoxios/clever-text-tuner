@@ -1,4 +1,3 @@
-
 import mammoth from 'mammoth';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType } from 'docx';
 
@@ -57,7 +56,7 @@ export const extractTextFromDocx = async (file: File): Promise<string> => {
           console.log('Attempting to extract text with default options...');
           const result = await mammoth.extractRawText({ 
             arrayBuffer,
-            // Remove the includeDefaultStyleMap property as it's not in the type definition
+            // Type-safe options only
           });
           
           // Check if we actually got text content
@@ -75,8 +74,7 @@ export const extractTextFromDocx = async (file: File): Promise<string> => {
             console.log('Attempting fallback extraction method...');
             const result = await mammoth.extractRawText({
               arrayBuffer,
-              // Remove the includeDefaultStyleMap property
-              ignoreEmptyParagraphs: false,
+              // Using only type-safe options
               styleMap: [
                 "p[style-name='Heading 1'] => h1:fresh",
                 "p[style-name='Heading 2'] => h2:fresh",
