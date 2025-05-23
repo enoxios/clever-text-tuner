@@ -1,7 +1,7 @@
 
 import { useState, useRef, DragEvent, ChangeEvent } from 'react';
 import { Upload, X, FileWarning, FileCheck, AlertCircle, Clipboard } from 'lucide-react';
-import { DocumentError } from '@/utils/documentUtils';
+import { DocumentError } from '@/utils/documentTypes';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { toast } from 'sonner';
