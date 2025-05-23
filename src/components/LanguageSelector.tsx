@@ -45,11 +45,11 @@ const styles = [
   { value: 'technical', label: 'Fachsprache' },
 ];
 
-// Updated AI model options with new GPT-4.1 models
+// Updated AI model options with corrected naming
 const models = [
   { value: 'gpt-4o', label: 'GPT-4o (empfohlen)' },
   { value: 'gpt-4o-mini', label: 'GPT-4o mini (schneller)' },
-  { value: 'gpt-4.5-preview', label: 'GPT-4.5 Turbo (leistungsstark)' },
+  { value: 'gpt-4.5-preview', label: 'GPT-4.5 Preview (leistungsstark)' },
   { value: 'gpt-4.1', label: 'GPT-4.1 (neues Modell)' },
   { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini (schneller)' },
 ];

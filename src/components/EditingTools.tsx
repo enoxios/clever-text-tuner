@@ -14,7 +14,7 @@ interface EditingToolsProps {
 const models = [
   { value: 'gpt-4o', label: 'GPT-4o (empfohlen)', description: 'Aktuellstes OpenAI-Modell mit höchster Qualität' },
   { value: 'gpt-4o-mini', label: 'GPT-4o mini (schneller)', description: 'Schnelleres und kostengünstigeres Modell' },
-  { value: 'gpt-4.5-preview', label: 'GPT-4.5 Turbo (leistungsstark)', description: 'Leistungsstarkes Modell mit erweiterten Fähigkeiten' },
+  { value: 'gpt-4.5-preview', label: 'GPT-4.5 Preview (leistungsstark)', description: 'Leistungsstarkes Modell mit erweiterten Fähigkeiten' },
   { value: 'gpt-4.1', label: 'GPT-4.1 (neues Modell)', description: 'Neues Modell mit fortschrittlichen Fähigkeiten' },
   { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini (schneller)', description: 'Schnellere Version des GPT-4.1 Modells' },
 ];

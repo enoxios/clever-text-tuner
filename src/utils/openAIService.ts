@@ -57,7 +57,11 @@ export const callOpenAI = async (
       apiModel = 'gpt-4-turbo';
     } else if (model === 'gpt-4.1-mini') {
       apiModel = 'gpt-4-turbo-mini';
-    }
+    } 
+    // No need to map gpt-4.5-preview as it's already correct for the API
+    
+    console.log('Original model selected:', model);
+    console.log('Mapped API model:', apiModel);
     
     // Prepare the request body
     const requestBody = {
@@ -189,7 +193,9 @@ export const processChunks = async (
         chunkPrompt = chunk.text;
       }
       
+      // Add the model to the prompt to ensure it's being used correctly
       const prompt = `@${model} ${chunkPrompt}`;
+      console.log(`Processing chunk ${i+1}/${chunks.length} with model: ${model}`);
       
       // Call the API
       const response = await callOpenAI(prompt, apiKey, systemMessage, model, glossaryEntries);
