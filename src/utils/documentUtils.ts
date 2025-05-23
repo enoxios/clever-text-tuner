@@ -57,7 +57,7 @@ export const extractTextFromDocx = async (file: File): Promise<string> => {
           console.log('Attempting to extract text with default options...');
           const result = await mammoth.extractRawText({ 
             arrayBuffer,
-            includeDefaultStyleMap: true
+            // Remove the includeDefaultStyleMap property as it's not in the type definition
           });
           
           // Check if we actually got text content
@@ -75,7 +75,7 @@ export const extractTextFromDocx = async (file: File): Promise<string> => {
             console.log('Attempting fallback extraction method...');
             const result = await mammoth.extractRawText({
               arrayBuffer,
-              includeDefaultStyleMap: true,
+              // Remove the includeDefaultStyleMap property
               ignoreEmptyParagraphs: false,
               styleMap: [
                 "p[style-name='Heading 1'] => h1:fresh",
