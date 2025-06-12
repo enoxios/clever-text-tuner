@@ -1,3 +1,4 @@
+
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType, CommentRangeStart, CommentRangeEnd, CommentReference } from 'docx';
 import { ChangeItem } from './documentTypes';
 import { compareTexts } from './compareUtils';
@@ -246,7 +247,9 @@ export const generateComparisonDocument = async (
   );
 
   const doc = new Document({
-    comments: comments,
+    comments: {
+      children: comments,
+    },
     sections: [{
       properties: {
         type: SectionType.CONTINUOUS,
