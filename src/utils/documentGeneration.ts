@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType, CommentRangeStart, CommentRangeEnd, CommentReference } from 'docx';
 import { ChangeItem } from './documentTypes';
 import { compareTexts } from './compareUtils';
 
@@ -99,19 +99,21 @@ export const generateWordDocument = async (
   return Packer.toBlob(doc);
 };
 
-// New function to generate comparison document with tracked changes
+// New function to generate comparison document with tracked changes as comments
 export const generateComparisonDocument = async (
   originalText: string,
   editedText: string
 ): Promise<Blob> => {
   const differences = compareTexts(originalText, editedText);
   
+  const comments: any[] = [];
   const paragraphs: Paragraph[] = [];
+  let commentId = 0;
   
   // Add title
   paragraphs.push(
     new Paragraph({
-      text: 'Textvergleich - Original vs. KI-Lektorat',
+      text: 'Textvergleich mit KI-Lektorat Kommentaren',
       heading: HeadingLevel.HEADING_1,
       spacing: {
         after: 400,
@@ -119,27 +121,56 @@ export const generateComparisonDocument = async (
     })
   );
   
-  // Process differences and create paragraphs with tracked changes
-  let currentParagraphRuns: TextRun[] = [];
+  // Process differences and create paragraphs with comments for changes
+  let currentParagraphRuns: any[] = [];
   
   differences.forEach((diff, index) => {
     if (diff.added) {
-      // Added text - mark as insertion by KI-Lektor
+      // Added text - create comment for addition
+      commentId++;
+      const commentText = `KI-Lektor hat hinzugefügt: "${diff.value}"`;
+      
+      comments.push({
+        id: commentId,
+        author: "KI-Lektor",
+        date: new Date(),
+        children: [
+          new Paragraph({
+            children: [new TextRun(commentText)],
+          }),
+        ],
+      });
+      
+      // Add the text with comment reference
       currentParagraphRuns.push(
+        new CommentRangeStart(commentId),
         new TextRun({
           text: diff.value,
-          color: "008000", // Green color for additions
-          underline: {},
-        })
+        }),
+        new CommentRangeEnd(commentId),
+        new CommentReference(commentId)
       );
     } else if (diff.removed) {
-      // Removed text - mark as deletion
+      // Removed text - create comment for deletion (don't show the deleted text in main content)
+      commentId++;
+      const commentText = `KI-Lektor hat gelöscht: "${diff.value}"`;
+      
+      comments.push({
+        id: commentId,
+        author: "KI-Lektor", 
+        date: new Date(),
+        children: [
+          new Paragraph({
+            children: [new TextRun(commentText)],
+          }),
+        ],
+      });
+      
+      // Add a comment reference at the deletion point (no visible text)
       currentParagraphRuns.push(
-        new TextRun({
-          text: diff.value,
-          color: "FF0000", // Red color for deletions
-          strike: true,
-        })
+        new CommentRangeStart(commentId),
+        new CommentRangeEnd(commentId),
+        new CommentReference(commentId)
       );
     } else {
       // Unchanged text
@@ -170,13 +201,13 @@ export const generateComparisonDocument = async (
     paragraphs.push(new Paragraph({ children: currentParagraphRuns }));
   }
   
-  // Add legend
+  // Add explanation
   paragraphs.push(
     new Paragraph({
       children: [new TextRun({ text: '', break: 2 })],
     }),
     new Paragraph({
-      text: 'Legende:',
+      text: 'Hinweise:',
       heading: HeadingLevel.HEADING_2,
       spacing: {
         after: 200,
@@ -185,15 +216,7 @@ export const generateComparisonDocument = async (
     new Paragraph({
       children: [
         new TextRun({
-          text: '• ',
-        }),
-        new TextRun({
-          text: 'Grün unterstrichen',
-          color: "008000",
-          underline: {},
-        }),
-        new TextRun({
-          text: ': Von KI-Lektor hinzugefügter Text',
+          text: '• Der obige Text zeigt die finale, lektorierte Version.',
         }),
       ],
       spacing: {
@@ -203,15 +226,17 @@ export const generateComparisonDocument = async (
     new Paragraph({
       children: [
         new TextRun({
-          text: '• ',
+          text: '• Kommentare am rechten Rand zeigen die vorgenommenen Änderungen.',
         }),
+      ],
+      spacing: {
+        after: 120,
+      },
+    }),
+    new Paragraph({
+      children: [
         new TextRun({
-          text: 'Rot durchgestrichen',
-          color: "FF0000",
-          strike: true,
-        }),
-        new TextRun({
-          text: ': Von KI-Lektor entfernter Text',
+          text: '• Alle Änderungen wurden vom KI-Lektor vorgenommen.',
         }),
       ],
       spacing: {
@@ -221,6 +246,7 @@ export const generateComparisonDocument = async (
   );
 
   const doc = new Document({
+    comments: comments,
     sections: [{
       properties: {
         type: SectionType.CONTINUOUS,
