@@ -1,8 +1,6 @@
-
-
 import { useState, useEffect } from 'react';
-import { Copy, CheckCircle2, AlertCircle, FileDown, List, FileText } from 'lucide-react';
-import { ChangeItem, downloadWordDocument } from '@/utils/documentUtils';
+import { Copy, CheckCircle2, AlertCircle, FileDown, List, FileText, GitCompare } from 'lucide-react';
+import { ChangeItem, downloadWordDocument, downloadComparisonDocument } from '@/utils/documentUtils';
 import { compareTexts, type TextDifference } from '@/utils/compareUtils';
 
 interface ResultViewProps {
@@ -27,6 +25,7 @@ const ResultView = ({
   const [activeTab, setActiveTab] = useState<'text' | 'changes' | 'comparison'>('text');
   const [isCopied, setIsCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingComparison, setIsDownloadingComparison] = useState(false);
   const [differences, setDifferences] = useState<TextDifference[]>([]);
   const [includeChanges, setIncludeChanges] = useState(false);
   
@@ -60,6 +59,17 @@ const ResultView = ({
       console.error('Download error:', err);
     } finally {
       setIsDownloading(false);
+    }
+  };
+  
+  const handleComparisonDownload = async () => {
+    try {
+      setIsDownloadingComparison(true);
+      await downloadComparisonDocument(originalText, editedText, `${fileName}-vergleich`);
+    } catch (err) {
+      console.error('Comparison download error:', err);
+    } finally {
+      setIsDownloadingComparison(false);
     }
   };
   
@@ -195,7 +205,7 @@ const ResultView = ({
         </div>
       </div>
       
-      <div className="mt-4 flex justify-between items-center">
+      <div className="mt-4 flex flex-col gap-4">
         <div className="flex items-center">
           <input
             type="checkbox"
@@ -209,10 +219,10 @@ const ResultView = ({
           </label>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <button 
             onClick={handleDownload}
-            className="flex items-center gap-2 bg-gnb-primary hover:bg-gnb-secondary text-white py-2 px-4 rounded-md font-medium transition-colors"
+            className="flex items-center justify-center gap-2 bg-gnb-primary hover:bg-gnb-secondary text-white py-2 px-4 rounded-md font-medium transition-colors"
             disabled={isDownloading}
           >
             {isDownloading ? (
@@ -223,14 +233,32 @@ const ResultView = ({
             ) : (
               <>
                 <FileDown className="h-4 w-4" />
-                Als .DOCX Datei herunterladen
+                Lektorierter Text (.DOCX)
+              </>
+            )}
+          </button>
+
+          <button 
+            onClick={handleComparisonDownload}
+            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium transition-colors"
+            disabled={isDownloadingComparison}
+          >
+            {isDownloadingComparison ? (
+              <>
+                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                Wird heruntergeladen...
+              </>
+            ) : (
+              <>
+                <GitCompare className="h-4 w-4" />
+                Textvergleich (.DOCX)
               </>
             )}
           </button>
           
           <button 
             onClick={handleCopyText}
-            className="flex items-center gap-2 bg-muted hover:bg-muted/80 text-foreground py-2 px-4 rounded-md font-medium transition-colors"
+            className="flex items-center justify-center gap-2 bg-muted hover:bg-muted/80 text-foreground py-2 px-4 rounded-md font-medium transition-colors"
           >
             {isCopied ? (
               <>
@@ -251,4 +279,3 @@ const ResultView = ({
 };
 
 export default ResultView;
-
