@@ -74,7 +74,7 @@ export const callOpenAI = async (
       return modelName.startsWith('gpt-5-') || modelName.includes('gpt-5');
     };
 
-    // Prepare the request body with correct token parameter
+    // Prepare the request body with model-specific parameters
     const requestBody: any = {
       model: apiModel,
       messages: [
@@ -86,15 +86,19 @@ export const callOpenAI = async (
           role: 'user',
           content: prompt
         }
-      ],
-      temperature: 0.7
+      ]
     };
 
-    // Use appropriate token parameter based on model
+    // Set model-specific parameters
     if (isGPT5Model(apiModel)) {
+      // GPT-5 models don't support temperature parameter and use max_completion_tokens
       requestBody.max_completion_tokens = 4000;
+      console.log('Using GPT-5 parameters: max_completion_tokens=4000, no temperature');
     } else {
+      // Older models use max_tokens and temperature
       requestBody.max_tokens = 4000;
+      requestBody.temperature = 0.7;
+      console.log('Using legacy parameters: max_tokens=4000, temperature=0.7');
     }
     
     console.log('Sending request to OpenAI API...');
