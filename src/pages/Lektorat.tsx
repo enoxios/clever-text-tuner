@@ -1,6 +1,8 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation';
 import UploadZone from '@/components/UploadZone';
 import DocumentStats from '@/components/DocumentStats';
@@ -8,6 +10,7 @@ import EditingTools from '@/components/EditingTools';
 import TextEditor from '@/components/TextEditor';
 import ResultView from '@/components/ResultView';
 import GlossaryUpload from '@/components/GlossaryUpload';
+import { Loader2 } from 'lucide-react';
 import { 
   extractTextFromDocx, 
   calculateDocumentStats,
@@ -31,6 +34,26 @@ interface GlossaryEntry {
 }
 
 const LektoratPage = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/login');
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
   const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
