@@ -69,8 +69,13 @@ export const callOpenAI = async (
     console.log('Original model selected:', model);
     console.log('Mapped API model:', apiModel);
     
-    // Prepare the request body
-    const requestBody = {
+    // Helper function to determine correct token parameter
+    const isGPT5Model = (modelName: string): boolean => {
+      return modelName.startsWith('gpt-5-') || modelName.includes('gpt-5');
+    };
+
+    // Prepare the request body with correct token parameter
+    const requestBody: any = {
       model: apiModel,
       messages: [
         {
@@ -82,9 +87,15 @@ export const callOpenAI = async (
           content: prompt
         }
       ],
-      max_tokens: 4000,
       temperature: 0.7
     };
+
+    // Use appropriate token parameter based on model
+    if (isGPT5Model(apiModel)) {
+      requestBody.max_completion_tokens = 4000;
+    } else {
+      requestBody.max_tokens = 4000;
+    }
     
     console.log('Sending request to OpenAI API...');
     console.log('Request model:', apiModel);
