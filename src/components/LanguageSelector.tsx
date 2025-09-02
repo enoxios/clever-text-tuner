@@ -45,12 +45,15 @@ const styles = [
   { value: 'technical', label: 'Fachsprache' },
 ];
 
-// Updated AI model options with corrected naming
+// Updated AI model options with GPT-5 models as the new standard
 const models = [
-  { value: 'gpt-4o', label: 'GPT-4o (empfohlen)' },
+  { value: 'gpt-5-2025-08-07', label: 'GPT-5 (empfohlen)' },
+  { value: 'gpt-5-mini-2025-08-07', label: 'GPT-5 mini (schneller)' },
+  { value: 'gpt-5-nano-2025-08-07', label: 'GPT-5 nano (am schnellsten)' },
+  { value: 'gpt-4o', label: 'GPT-4o (bewährt)' },
   { value: 'gpt-4o-mini', label: 'GPT-4o mini (schneller)' },
   { value: 'gpt-4.5-preview', label: 'GPT-4.5 Preview (leistungsstark)' },
-  { value: 'gpt-4.1', label: 'GPT-4.1 (neues Modell)' },
+  { value: 'gpt-4.1', label: 'GPT-4.1 (älteres Modell)' },
   { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini (schneller)' },
 ];
 
@@ -65,7 +68,7 @@ const LanguageSelector = ({
   disabled = false
 }: LanguageSelectorProps) => {
   const [translationStyle, setTranslationStyle] = useState<string>(initialStyle);
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o');
+  const [selectedModel, setSelectedModel] = useState<string>('gpt-5-2025-08-07');
   const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
 
   const handleStyleChange = (value: string) => {

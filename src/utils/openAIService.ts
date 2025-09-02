@@ -52,8 +52,14 @@ export const callOpenAI = async (
     
     // Handle correct model mapping for API calls
     let apiModel = model;
-    // Ensure we're using the correct model names for the OpenAI API
-    if (model === 'gpt-4.1') {
+    // Map display model names to correct API model names
+    if (model === 'gpt-5-2025-08-07') {
+      apiModel = 'gpt-5-2025-08-07';
+    } else if (model === 'gpt-5-mini-2025-08-07') {
+      apiModel = 'gpt-5-mini-2025-08-07';
+    } else if (model === 'gpt-5-nano-2025-08-07') {
+      apiModel = 'gpt-5-nano-2025-08-07';
+    } else if (model === 'gpt-4.1') {
       apiModel = 'gpt-4-turbo';
     } else if (model === 'gpt-4.1-mini') {
       apiModel = 'gpt-4-turbo-mini';

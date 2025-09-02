@@ -39,7 +39,13 @@ export const generateTranslationPrompt = (
   // Get the correct model identifier for prompt
   let promptModel = model;
   // Map display model names to API model names for the prompt
-  if (model === 'gpt-4.1') {
+  if (model === 'gpt-5-2025-08-07') {
+    promptModel = 'gpt-5-2025-08-07';
+  } else if (model === 'gpt-5-mini-2025-08-07') {
+    promptModel = 'gpt-5-mini-2025-08-07';
+  } else if (model === 'gpt-5-nano-2025-08-07') {
+    promptModel = 'gpt-5-nano-2025-08-07';
+  } else if (model === 'gpt-4.1') {
     promptModel = 'gpt-4-turbo';
   } else if (model === 'gpt-4.1-mini') {
     promptModel = 'gpt-4-turbo-mini';
@@ -91,7 +97,7 @@ export const translateText = async (
   style: 'standard' | 'literary' | 'technical',
   sourceLanguage: string,
   targetLanguage: string,
-  model: string = 'gpt-4o',
+  model: string = 'gpt-5-2025-08-07',
   glossaryEntries?: { term: string; explanation: string }[]
 ): Promise<TranslationResponse | null> => {
   try {

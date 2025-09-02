@@ -39,7 +39,7 @@ const UebersetzungPage = () => {
   });
   
   const [translationStyle, setTranslationStyle] = useState<'standard' | 'literary' | 'technical'>('standard');
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o');
+  const [selectedModel, setSelectedModel] = useState<string>('gpt-5-2025-08-07');
   const [sourceLanguage, setSourceLanguage] = useState<string>('auto');
   const [targetLanguage, setTargetLanguage] = useState<string>('en');
   

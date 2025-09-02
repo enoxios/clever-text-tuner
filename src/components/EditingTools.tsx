@@ -10,12 +10,15 @@ interface EditingToolsProps {
   disabled?: boolean;
 }
 
-// Model options with consistent naming to match LanguageSelector.tsx
+// Model options with GPT-5 models as the new standard
 const models = [
-  { value: 'gpt-4o', label: 'GPT-4o (empfohlen)', description: 'Aktuellstes OpenAI-Modell mit höchster Qualität' },
-  { value: 'gpt-4o-mini', label: 'GPT-4o mini (schneller)', description: 'Schnelleres und kostengünstigeres Modell' },
-  { value: 'gpt-4.5-preview', label: 'GPT-4.5 Preview (leistungsstark)', description: 'Leistungsstarkes Modell mit erweiterten Fähigkeiten' },
-  { value: 'gpt-4.1', label: 'GPT-4.1 (neues Modell)', description: 'Neues Modell mit fortschrittlichen Fähigkeiten' },
+  { value: 'gpt-5-2025-08-07', label: 'GPT-5 (empfohlen)', description: 'Neuestes und leistungsstärkstes OpenAI-Modell mit höchster Qualität' },
+  { value: 'gpt-5-mini-2025-08-07', label: 'GPT-5 mini (schneller)', description: 'Schnellere, kostengünstigere Version von GPT-5' },
+  { value: 'gpt-5-nano-2025-08-07', label: 'GPT-5 nano (am schnellsten)', description: 'Schnellste, günstigste Version von GPT-5' },
+  { value: 'gpt-4o', label: 'GPT-4o (bewährt)', description: 'Bewährtes OpenAI-Modell mit hoher Qualität' },
+  { value: 'gpt-4o-mini', label: 'GPT-4o mini (schneller)', description: 'Schnelleres und kostengünstigeres GPT-4 Modell' },
+  { value: 'gpt-4.5-preview', label: 'GPT-4.5 Preview (leistungsstark)', description: 'Leistungsstarkes GPT-4 Modell mit erweiterten Fähigkeiten' },
+  { value: 'gpt-4.1', label: 'GPT-4.1 (älteres Modell)', description: 'Älteres Modell mit guten Fähigkeiten' },
   { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini (schneller)', description: 'Schnellere Version des GPT-4.1 Modells' },
 ];
 
@@ -28,7 +31,7 @@ const EditingTools = ({
   disabled = false 
 }: EditingToolsProps) => {
   const [activeMode, setActiveMode] = useState<'standard' | 'nurKorrektur' | 'kochbuch'>(initialMode);
-  const [activeModel, setActiveModel] = useState('gpt-4o');
+  const [activeModel, setActiveModel] = useState('gpt-5-2025-08-07');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [systemMessage, setSystemMessage] = useState(defaultSystemMessage);
   const [showModeDropdown, setShowModeDropdown] = useState(false);
