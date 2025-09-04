@@ -89,9 +89,13 @@ serve(async (req) => {
 
     // Verify password using bcrypt
     const bcrypt = await import('https://deno.land/x/bcrypt@v0.4.1/mod.ts');
+    console.log('Attempting password verification for user:', username);
+    console.log('Stored hash:', user.password_hash);
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
+    console.log('Password match result:', passwordMatch);
 
     if (!passwordMatch) {
+      console.log('Password verification failed for user:', username);
       return new Response(
         JSON.stringify({ error: 'Benutzername oder Passwort ungültig' }),
         { 
