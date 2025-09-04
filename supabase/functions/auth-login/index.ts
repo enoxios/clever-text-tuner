@@ -88,7 +88,7 @@ serve(async (req) => {
     }
 
     // Verify password using bcrypt
-    const bcrypt = await import('https://deno.land/x/bcrypt@v0.4.1/mod.ts');
+    const bcrypt = await import('https://deno.land/x/bcrypt@v0.2.4/mod.ts');
     console.log('Attempting password verification for user:', username);
     console.log('Stored hash:', user.password_hash);
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
