@@ -73,11 +73,22 @@ const UebersetzungPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string>('');
   const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(false);
+  const [hasStoredKey, setHasStoredKey] = useState<boolean>(false);
   const [glossaryEntries, setGlossaryEntries] = useState<GlossaryEntry[]>([]);
   
   const [isLargeDocument, setIsLargeDocument] = useState<boolean>(false);
   const [textChunks, setTextChunks] = useState<TextChunk[]>([]);
   const [chunkProgress, setChunkProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
+
+  // Load stored API key on mount
+  useEffect(() => {
+    const storedKey = localStorage.getItem('gnb-openai-api-key');
+    if (storedKey) {
+      setApiKey(storedKey);
+      setHasStoredKey(true);
+      setShowApiKeyInput(false);
+    }
+  }, []);
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -134,7 +145,7 @@ const UebersetzungPage = () => {
       setError(null);
     }
     
-    setApiKey('');
+    // Don't clear API key on file removal - keep it stored
   };
 
   const handleTextChange = (text: string) => {
@@ -167,6 +178,25 @@ const UebersetzungPage = () => {
     if (!newKey.includes('Fehler')) {
       setApiKey(newKey);
     }
+  };
+
+  const saveApiKey = () => {
+    if (apiKey.trim() && !apiKey.includes('Fehler')) {
+      localStorage.setItem('gnb-openai-api-key', apiKey.trim());
+      setHasStoredKey(true);
+      setShowApiKeyInput(false);
+      toast.success('API-Schlüssel erfolgreich gespeichert');
+    } else {
+      toast.error('Bitte geben Sie einen gültigen API-Schlüssel ein');
+    }
+  };
+
+  const deleteStoredKey = () => {
+    localStorage.removeItem('gnb-openai-api-key');
+    setApiKey('');
+    setHasStoredKey(false);
+    setShowApiKeyInput(true);
+    toast.info('Gespeicherter API-Schlüssel wurde gelöscht');
   };
 
   const processTranslation = async () => {
@@ -278,17 +308,50 @@ const UebersetzungPage = () => {
               <label htmlFor="apiKey" className="block text-sm font-medium mb-1">
                 OpenAI API-Schlüssel:
               </label>
-              <input
-                id="apiKey"
-                type="password"
-                value={apiKey}
-                onChange={handleApiKeyChange}
-                className="w-full p-2 border rounded"
-                placeholder="sk-..."
-              />
+              <div className="flex gap-2">
+                <input
+                  id="apiKey"
+                  type="password"
+                  value={apiKey}
+                  onChange={handleApiKeyChange}
+                  className="flex-1 p-2 border rounded"
+                  placeholder="sk-..."
+                />
+                <button
+                  onClick={saveApiKey}
+                  className="px-4 py-2 bg-gnb-primary text-white rounded hover:bg-gnb-secondary transition-colors"
+                >
+                  Speichern
+                </button>
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Ihr API-Schlüssel wird nicht gespeichert und nur für die aktuelle Sitzung verwendet.
+                Ihr API-Schlüssel wird sicher lokal gespeichert und bei zukünftigen Besuchen automatisch geladen.
               </p>
+            </div>
+          )}
+
+          {!showApiKeyInput && hasStoredKey && (
+            <div className="mt-4 p-3 border rounded-lg bg-green-50 text-green-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">API-Schlüssel gespeichert:</span>
+                  <code className="text-xs">sk-***...{apiKey.slice(-4)}</code>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowApiKeyInput(true)}
+                    className="text-xs px-2 py-1 border border-green-600 rounded hover:bg-green-100 transition-colors"
+                  >
+                    Ändern
+                  </button>
+                  <button
+                    onClick={deleteStoredKey}
+                    className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                  >
+                    Löschen
+                  </button>
+                </div>
+              </div>
             </div>
           )}
           
@@ -347,12 +410,12 @@ const UebersetzungPage = () => {
                     : 'KI-Übersetzung starten'}
                 </button>
                 
-                {!showApiKeyInput && (
+                {!showApiKeyInput && !hasStoredKey && (
                   <button
                     className="bg-transparent hover:bg-muted text-gnb-primary py-2 px-4 border border-gnb-primary rounded-lg font-medium transition-colors"
                     onClick={() => setShowApiKeyInput(true)}
                   >
-                    API-Schlüssel ändern
+                    API-Schlüssel eingeben
                   </button>
                 )}
               </div>
