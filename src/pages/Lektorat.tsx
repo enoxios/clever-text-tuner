@@ -296,8 +296,16 @@ const LektoratPage = () => {
         const mergedText = mergeProcessedChunks(processedChunks);
         const mergedChangeItems = mergeChanges(allChanges);
         
+        console.log('Lektorat.tsx - Large document processing completed:');
+        console.log('- Total chunks processed:', processedChunks.length);
+        console.log('- Raw allChanges length:', allChanges.length);
+        console.log('- Merged changes count:', mergedChangeItems.length);
+        console.log('- Merged changes preview:', mergedChangeItems.slice(0, 5));
+        
         setEditedText(removeMarkdown(mergedText));
         setChanges(mergedChangeItems);
+        
+        console.log('Lektorat.tsx - Large document changes state updated with', mergedChangeItems.length, 'items');
         
         toast.success(`Lektorat für alle ${textChunks.length} Teile abgeschlossen`);
       } else {
@@ -323,8 +331,15 @@ ${apiResponse.text}
 ÄNDERUNGEN:
 ${apiResponse.changes}`);
         
+        console.log('Lektorat.tsx - ProcessLektoratResponse result:');
+        console.log('- Text length:', result.text.length);
+        console.log('- Changes count:', result.changes.length);
+        console.log('- Changes preview:', result.changes.slice(0, 3));
+        
         setEditedText(removeMarkdown(result.text));
         setChanges(result.changes);
+        
+        console.log('Lektorat.tsx - Changes state updated with', result.changes.length, 'items');
         
         toast.success('Text erfolgreich lektoriert');
       }

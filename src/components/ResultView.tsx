@@ -184,9 +184,20 @@ const ResultView = ({
       <div className={activeTab === 'changes' ? '' : 'hidden'}>
         <div className="border rounded-lg p-3 h-[300px] overflow-auto bg-background">
           {changes.length === 0 ? (
-            <p className="text-center py-4 italic text-muted-foreground">
-              Keine Änderungen gefunden.
-            </p>
+            <div className="text-center py-4">
+              <p className="italic text-muted-foreground mb-4">
+                Keine Änderungen gefunden.
+              </p>
+              <div className="text-xs text-muted-foreground bg-muted p-3 rounded">
+                <p className="font-medium mb-2">Debug-Info:</p>
+                <p>• Änderungen Array Länge: {changes.length}</p>
+                <p>• Original Text: {originalText ? `${originalText.length} Zeichen` : 'Leer'}</p>
+                <p>• Lektorierter Text: {editedText ? `${editedText.length} Zeichen` : 'Leer'}</p>
+                <p className="mt-2 text-xs">
+                  Falls das Problem weiterhin besteht, überprüfen Sie die Browser-Konsole für weitere Details.
+                </p>
+              </div>
+            </div>
           ) : (
             <div className="space-y-3">
               {changes.map((item, index) => (

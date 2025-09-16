@@ -171,6 +171,7 @@ export const processLektoratResponse = (content: string): LektoratResult => {
     // NEW: Final fallback - if no changes found but we have content, try to extract any changes
     if (result.changes.length === 0 && content.length > 100) {
       console.log('processLektoratResponse - Final fallback for changes extraction');
+      console.log('processLektoratResponse - Content to analyze for changes:', content.substring(0, 200));
       
       // Look for any structured content that might be changes
       const paragraphs = content.split('\n\n').filter(p => p.trim().length > 0);
@@ -197,6 +198,27 @@ export const processLektoratResponse = (content: string): LektoratResult => {
       
       if (result.changes.length > 0) {
         console.log('processLektoratResponse - Found changes in final fallback:', result.changes.length);
+      } else {
+        // Ultimate fallback: if we still have no structured changes, create a generic change from the string
+        console.log('processLektoratResponse - Ultimate fallback: creating generic change from content');
+        result.changes.push({
+          text: 'API-Antwortanalyse',
+          isCategory: true
+        });
+        
+        // Take the first few sentences as a generic change description
+        const sentences = content.split(/[.!?]\s+/).slice(0, 3).filter(s => s.trim().length > 10);
+        if (sentences.length > 0) {
+          result.changes.push({
+            text: `Rohe API-Antwort (erste Sätze): ${sentences.join('. ')}...`,
+            isCategory: false
+          });
+        } else {
+          result.changes.push({
+            text: `Vollständige API-Antwort erhalten (${content.length} Zeichen). Struktur nicht erkannt.`,
+            isCategory: false
+          });
+        }
       }
     }
     

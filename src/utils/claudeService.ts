@@ -101,6 +101,7 @@ export const callClaude = async (
 
     console.log('Content received length:', content.length);
     console.log('Content preview:', content.substring(0, 100) + '...');
+    console.log('Raw Claude API Response Content (first 500 chars):', content.substring(0, 500));
     
     // Handle empty content case
     if (content.trim() === '') {
@@ -157,13 +158,31 @@ export const callClaude = async (
       console.log('Changes match preview:', changesMatch[1].substring(0, 100));
     }
 
-    // If we can't find the sections, return the entire content as text with a note
+    // Enhanced fallback with better change extraction
     if (!textMatch && !changesMatch) {
       console.log('LEKTORIERTER TEXT and ÄNDERUNGEN sections not found, returning full content');
       console.log('Full content for debugging:', content);
+      
+      // Try to extract any meaningful changes from the content
+      let fallbackChanges = 'Die API-Antwort enthielt keine strukturierten Abschnitte mit "LEKTORIERTER TEXT" und "ÄNDERUNGEN".';
+      
+      // Look for any text that might indicate changes
+      const changeKeywords = /(?:verbessert|geändert|korrigiert|angepasst|ersetzt|hinzugefügt|entfernt|überarbeitet)/gi;
+      const potentialChanges = content.match(changeKeywords);
+      
+      if (potentialChanges && potentialChanges.length > 0) {
+        fallbackChanges += `\n\nGefundene Änderungshinweise: ${potentialChanges.join(', ')}`;
+        
+        // Try to extract sentences containing these keywords
+        const sentences = content.split(/[.!?]\s+/).filter(s => changeKeywords.test(s));
+        if (sentences.length > 0) {
+          fallbackChanges += '\n\nMögliche Änderungen:\n' + sentences.slice(0, 5).map(s => `• ${s.trim()}`).join('\n');
+        }
+      }
+      
       return {
         text: content.trim(),
-        changes: 'Die API-Antwort enthielt keine strukturierten Abschnitte mit "LEKTORIERTER TEXT" und "ÄNDERUNGEN". Bitte überprüfen Sie die Formatierung.'
+        changes: fallbackChanges
       };
     }
 
