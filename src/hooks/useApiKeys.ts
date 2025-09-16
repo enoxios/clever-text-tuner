@@ -11,44 +11,53 @@ export const useApiKeys = () => {
   const [apiKeys, setApiKeys] = useState<ApiKeys>({ openai_api_key: null, claude_api_key: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated, getAuthToken } = useAuth();
+  const { isAuthenticated, getAuthToken, loading: authLoading } = useAuth();
 
   // Load API keys from Supabase or fallback to localStorage
   const loadApiKeys = async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      const token = getAuthToken();
+      console.log('useApiKeys: Loading keys, isAuthenticated:', isAuthenticated, 'token exists:', !!token);
 
-      if (isAuthenticated && getAuthToken()) {
+      if (isAuthenticated && token) {
+        console.log('useApiKeys: Attempting to load from Supabase with token');
         // Try to load from Supabase
         const { data, error } = await supabase.functions.invoke('manage-api-keys', {
           method: 'GET',
           headers: {
-            Authorization: `Bearer ${getAuthToken()}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
         if (error) {
-          console.error('Failed to load API keys from Supabase:', error);
+          console.error('useApiKeys: Failed to load API keys from Supabase:', error);
+          console.log('useApiKeys: Falling back to localStorage');
           // Fallback to localStorage
           loadFromLocalStorage();
         } else {
-          setApiKeys(data);
+          console.log('useApiKeys: Successfully loaded from Supabase:', { hasOpenAI: !!data?.openai_api_key, hasClaude: !!data?.claude_api_key });
+          setApiKeys(data || { openai_api_key: null, claude_api_key: null });
+          
           // Migrate from localStorage to Supabase if keys exist locally but not in DB
-          if (!data.openai_api_key && !data.claude_api_key) {
+          if (!data?.openai_api_key && !data?.claude_api_key) {
             const localOpenAI = localStorage.getItem('openai-api-key');
             const localClaude = localStorage.getItem('claude-api-key');
             if (localOpenAI || localClaude) {
+              console.log('useApiKeys: Migrating keys from localStorage to Supabase');
               await saveApiKeys(localOpenAI || '', localClaude || '');
             }
           }
         }
       } else {
+        console.log('useApiKeys: Not authenticated, using localStorage');
         // No session, use localStorage
         loadFromLocalStorage();
       }
     } catch (err) {
-      console.error('Error loading API keys:', err);
+      console.error('useApiKeys: Error loading API keys:', err);
       setError('Failed to load API keys');
       loadFromLocalStorage();
     } finally {
@@ -59,6 +68,7 @@ export const useApiKeys = () => {
   const loadFromLocalStorage = () => {
     const openaiKey = localStorage.getItem('openai-api-key') || '';
     const claudeKey = localStorage.getItem('claude-api-key') || '';
+    console.log('useApiKeys: Loading from localStorage:', { hasOpenAI: !!openaiKey, hasClaude: !!claudeKey });
     setApiKeys({ openai_api_key: openaiKey, claude_api_key: claudeKey });
   };
 
@@ -142,8 +152,12 @@ export const useApiKeys = () => {
   };
 
   useEffect(() => {
+    // Only load API keys when authentication state is settled
+    if (authLoading) return; // Wait for auth context to finish loading
+    
+    console.log('useApiKeys: Auth state changed, loading keys');
     loadApiKeys();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authLoading]);
 
   return {
     apiKeys,

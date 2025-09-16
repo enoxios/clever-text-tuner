@@ -27,8 +27,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Check if user is already authenticated
     const authToken = localStorage.getItem('app-auth-token');
+    console.log('AuthContext: Checking stored token:', authToken ? 'token exists' : 'no token');
+    
     if (authToken === ADMIN_PASSWORD) {
       setIsAuthenticated(true);
+      console.log('AuthContext: User authenticated');
+    } else {
+      console.log('AuthContext: User not authenticated');
     }
     setLoading(false);
   }, []);
@@ -37,8 +42,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (password === ADMIN_PASSWORD) {
       localStorage.setItem('app-auth-token', password);
       setIsAuthenticated(true);
+      console.log('AuthContext: Login successful, token stored');
       return {};
     } else {
+      console.log('AuthContext: Login failed - wrong password');
       return { error: 'Falsches Passwort' };
     }
   };
