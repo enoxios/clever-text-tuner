@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { supabase } from "@/integrations/supabase/client";
 
 interface ClaudeResponse {
   text: string;
@@ -60,27 +61,29 @@ export const callClaude = async (
       ]
     };
     
-    console.log('Sending request to Claude API...');
+    console.log('Sending request to Claude Proxy...');
     console.log('Request model:', model);
     
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(requestBody)
+    // Call the Supabase Edge Function instead of Claude API directly
+    const { data, error } = await supabase.functions.invoke('claude-proxy', {
+      body: {
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        model: model,
+        max_tokens: 4000,
+        temperature: 0.7,
+        system: systemMessage
+      }
     });
 
-    // Log the raw response status and headers for debugging
-    console.log('Claude API response status:', response.status);
-    console.log('Claude API response status text:', response.statusText);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: { message: 'Unbekannter Fehler' } }));
-      const errorMessage = errorData.error?.message || `HTTP Fehler: ${response.status} ${response.statusText}`;
-      console.error('Claude API error response:', errorData);
-      throw new Error(`Claude API-Fehler: ${errorMessage}`);
+    if (error) {
+      console.error('Claude Proxy error:', error);
+      throw new Error(`Claude Proxy-Fehler: ${error.message}`);
     }
-
-    const data = await response.json();
     console.log('Claude API response data received:', data ? 'Yes' : 'No');
     
     if (!data || !data.content || data.content.length === 0) {
