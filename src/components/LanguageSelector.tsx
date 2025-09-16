@@ -45,16 +45,17 @@ const styles = [
   { value: 'technical', label: 'Fachsprache' },
 ];
 
-// Updated AI model options with GPT-5 models as the new standard
 const models = [
-  { value: 'gpt-5-2025-08-07', label: 'GPT-5 (empfohlen)' },
-  { value: 'gpt-5-mini-2025-08-07', label: 'GPT-5 mini (schneller)' },
-  { value: 'gpt-5-nano-2025-08-07', label: 'GPT-5 nano (am schnellsten)' },
-  { value: 'gpt-4o', label: 'GPT-4o (bewährt)' },
-  { value: 'gpt-4o-mini', label: 'GPT-4o mini (schneller)' },
-  { value: 'gpt-4.5-preview', label: 'GPT-4.5 Preview (leistungsstark)' },
-  { value: 'gpt-4.1', label: 'GPT-4.1 (älteres Modell)' },
-  { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini (schneller)' },
+  // Claude Models (Anthropic) - Recommended for stability
+  { value: 'claude-opus-4-1-20250805', label: 'Claude 4 Opus', provider: 'Anthropic' },
+  { value: 'claude-sonnet-4-20250514', label: 'Claude 4 Sonnet (empfohlen)', provider: 'Anthropic' },
+  { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku', provider: 'Anthropic' },
+  
+  // OpenAI Models
+  { value: 'gpt-5-2025-08-07', label: 'GPT-5 (experimentell)', provider: 'OpenAI' },
+  { value: 'gpt-5-mini-2025-08-07', label: 'GPT-5 mini (experimentell)', provider: 'OpenAI' },
+  { value: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI' },
+  { value: 'gpt-4o-mini', label: 'GPT-4o mini', provider: 'OpenAI' },
 ];
 
 const LanguageSelector = ({
@@ -68,7 +69,7 @@ const LanguageSelector = ({
   disabled = false
 }: LanguageSelectorProps) => {
   const [translationStyle, setTranslationStyle] = useState<string>(initialStyle);
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o');
+  const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-20250514');
   const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
 
   const handleStyleChange = (value: string) => {
@@ -192,18 +193,39 @@ const LanguageSelector = ({
 
             <div>
               <label className="block text-sm font-medium mb-1">KI-Modell:</label>
-              <div className="flex flex-wrap gap-2">
-                {models.map((model) => (
-                  <Button
-                    key={model.value}
-                    variant={selectedModel === model.value ? 'default' : 'outline'}
-                    onClick={() => handleModelChange(model.value)}
-                    disabled={disabled}
-                    className="flex-1"
-                  >
-                    {model.label}
-                  </Button>
-                ))}
+              <div className="space-y-2">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2">Anthropic (Empfohlen)</p>
+                  <div className="flex flex-wrap gap-2">
+                    {models.filter(m => m.provider === 'Anthropic').map((model) => (
+                      <Button
+                        key={model.value}
+                        variant={selectedModel === model.value ? 'default' : 'outline'}
+                        onClick={() => handleModelChange(model.value)}
+                        disabled={disabled}
+                        className="flex-1"
+                      >
+                        {model.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2">OpenAI</p>
+                  <div className="flex flex-wrap gap-2">
+                    {models.filter(m => m.provider === 'OpenAI').map((model) => (
+                      <Button
+                        key={model.value}
+                        variant={selectedModel === model.value ? 'default' : 'outline'}
+                        onClick={() => handleModelChange(model.value)}
+                        disabled={disabled}
+                        className="flex-1"
+                      >
+                        {model.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

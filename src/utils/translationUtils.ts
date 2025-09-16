@@ -1,7 +1,7 @@
 
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType } from 'docx';
 import { removeMarkdown, type TextChunk, mergeProcessedChunks } from './documentUtils';
-import { callOpenAI } from './openAIService';
+import { callAI } from './aiServiceRouter';
 
 export interface TranslationResponse {
   originalText: string;
@@ -93,11 +93,12 @@ ${text}`;
  */
 export const translateText = async (
   text: string,
-  apiKey: string,
+  openaiApiKey: string,
+  claudeApiKey: string,
   style: 'standard' | 'literary' | 'technical',
   sourceLanguage: string,
   targetLanguage: string,
-  model: string = 'gpt-5-2025-08-07',
+  model: string = 'claude-sonnet-4-20250514',
   glossaryEntries?: { term: string; explanation: string }[]
 ): Promise<TranslationResponse | null> => {
   try {
@@ -108,7 +109,7 @@ export const translateText = async (
 Deine Aufgabe ist es, Texte präzise zu übersetzen und dabei kulturelle Nuancen zu berücksichtigen.
 Strukturiere deine Antwort in zwei klar getrennte Teile: "ÜBERSETZTER TEXT:" und "ANMERKUNGEN:".`;
     
-    const apiResponse = await callOpenAI(prompt, apiKey, systemMessage, model, glossaryEntries);
+    const apiResponse = await callAI(prompt, openaiApiKey, claudeApiKey, systemMessage, model, glossaryEntries);
     
     if (!apiResponse) {
       throw new Error('Keine Antwort von der API erhalten');
@@ -168,7 +169,8 @@ export const processTranslationResponse = (
  */
 export const processTranslationChunks = async (
   chunks: TextChunk[],
-  apiKey: string,
+  openaiApiKey: string,
+  claudeApiKey: string,
   style: 'standard' | 'literary' | 'technical',
   sourceLanguage: string,
   targetLanguage: string,
@@ -176,13 +178,17 @@ export const processTranslationChunks = async (
   glossaryEntries?: { term: string; explanation: string }[],
   onChunkProgress?: (completed: number, total: number) => void
 ): Promise<{ processedChunks: TextChunk[], allNotes: { text: string; isCategory: boolean }[][] }> => {
-  // Validate the API key
-  if (!apiKey || apiKey.trim() === '') {
-    throw new Error('API-Schlüssel fehlt');
+  // Validate the API keys
+  const isClaudeModel = model.startsWith('claude-');
+  const requiredKey = isClaudeModel ? claudeApiKey : openaiApiKey;
+  const keyType = isClaudeModel ? 'Claude' : 'OpenAI';
+  
+  if (!requiredKey || requiredKey.trim() === '') {
+    throw new Error(`${keyType} API-Schlüssel fehlt`);
   }
   
-  if (apiKey.includes('Fehler')) {
-    throw new Error('Ungültiger API-Schlüssel');
+  if (requiredKey.includes('Fehler')) {
+    throw new Error(`Ungültiger ${keyType} API-Schlüssel`);
   }
   
   const processedChunks: TextChunk[] = [];
@@ -206,8 +212,8 @@ Strukturiere deine Antwort in zwei klar getrennte Teile: "ÜBERSETZTER TEXT:" un
       
       const prompt = generateTranslationPrompt(chunkPrompt, style, sourceLanguage, targetLanguage, model);
       
-      // Call the API
-      const response = await callOpenAI(prompt, apiKey, systemMessage, model, glossaryEntries);
+      // Call the AI service router
+      const response = await callAI(prompt, openaiApiKey, claudeApiKey, systemMessage, model, glossaryEntries);
       
       if (!response) {
         throw new Error(`Fehler bei der Verarbeitung des Textabschnitts ${i+1}`);

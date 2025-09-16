@@ -22,6 +22,7 @@ import {
   MAX_CHUNK_SIZE
 } from '@/utils/documentUtils';
 import { translateText, processTranslationChunks } from '@/utils/translationUtils';
+import ApiKeyManager from '@/components/ApiKeyManager';
 
 interface GlossaryEntry {
   term: string;
@@ -62,7 +63,7 @@ const UebersetzungPage = () => {
   });
   
   const [translationStyle, setTranslationStyle] = useState<'standard' | 'literary' | 'technical'>('standard');
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-5-2025-08-07');
+  const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-20250514');
   const [sourceLanguage, setSourceLanguage] = useState<string>('auto');
   const [targetLanguage, setTargetLanguage] = useState<string>('en');
   
@@ -71,24 +72,18 @@ const UebersetzungPage = () => {
   const [translatedText, setTranslatedText] = useState<string>('');
   const [notes, setNotes] = useState<{text: string; isCategory: boolean}[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState<string>('');
-  const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(false);
-  const [hasStoredKey, setHasStoredKey] = useState<boolean>(false);
+  const [openaiApiKey, setOpenaiApiKey] = useState<string>('');
+  const [claudeApiKey, setClaudeApiKey] = useState<string>('');
   const [glossaryEntries, setGlossaryEntries] = useState<GlossaryEntry[]>([]);
   
   const [isLargeDocument, setIsLargeDocument] = useState<boolean>(false);
   const [textChunks, setTextChunks] = useState<TextChunk[]>([]);
   const [chunkProgress, setChunkProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
 
-  // Load stored API key on mount
-  useEffect(() => {
-    const storedKey = localStorage.getItem('gnb-openai-api-key');
-    if (storedKey) {
-      setApiKey(storedKey);
-      setHasStoredKey(true);
-      setShowApiKeyInput(false);
-    }
-  }, []);
+  const handleApiKeysChange = (openaiKey: string, claudeKey: string) => {
+    setOpenaiApiKey(openaiKey);
+    setClaudeApiKey(claudeKey);
+  };
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -173,31 +168,6 @@ const UebersetzungPage = () => {
     setSelectedModel(model);
   };
   
-  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newKey = e.target.value;
-    if (!newKey.includes('Fehler')) {
-      setApiKey(newKey);
-    }
-  };
-
-  const saveApiKey = () => {
-    if (apiKey.trim() && !apiKey.includes('Fehler')) {
-      localStorage.setItem('gnb-openai-api-key', apiKey.trim());
-      setHasStoredKey(true);
-      setShowApiKeyInput(false);
-      toast.success('API-Schlüssel erfolgreich gespeichert');
-    } else {
-      toast.error('Bitte geben Sie einen gültigen API-Schlüssel ein');
-    }
-  };
-
-  const deleteStoredKey = () => {
-    localStorage.removeItem('gnb-openai-api-key');
-    setApiKey('');
-    setHasStoredKey(false);
-    setShowApiKeyInput(true);
-    toast.info('Gespeicherter API-Schlüssel wurde gelöscht');
-  };
 
   const processTranslation = async () => {
     if (!documentText.trim()) {
@@ -205,16 +175,13 @@ const UebersetzungPage = () => {
       return;
     }
 
-    if (!apiKey.trim()) {
-      setShowApiKeyInput(true);
-      toast.info('Bitte geben Sie Ihren OpenAI API-Schlüssel ein');
-      return;
-    }
+    // Check if we have the required API key for the selected model
+    const isClaudeModel = selectedModel.startsWith('claude-');
+    const requiredKey = isClaudeModel ? claudeApiKey : openaiApiKey;
+    const keyType = isClaudeModel ? 'Claude' : 'OpenAI';
     
-    if (apiKey.includes('Fehler')) {
-      toast.error('Ungültiger API-Schlüssel. Bitte geben Sie einen gültigen OpenAI API-Schlüssel ein');
-      setShowApiKeyInput(true);
-      setApiKey('');
+    if (!requiredKey.trim()) {
+      toast.info(`Bitte geben Sie Ihren ${keyType} API-Schlüssel ein`);
       return;
     }
     
@@ -229,7 +196,8 @@ const UebersetzungPage = () => {
         
         const { processedChunks, allNotes } = await processTranslationChunks(
           textChunks,
-          apiKey,
+          openaiApiKey,
+          claudeApiKey,
           translationStyle,
           sourceLanguage,
           targetLanguage,
@@ -250,7 +218,8 @@ const UebersetzungPage = () => {
       } else {
         const response = await translateText(
           documentText,
-          apiKey,
+          openaiApiKey,
+          claudeApiKey,
           translationStyle,
           sourceLanguage,
           targetLanguage,
@@ -303,57 +272,13 @@ const UebersetzungPage = () => {
             disabled={isProcessing}
           />
           
-          {showApiKeyInput && (
-            <div className="mt-4 p-4 border rounded-lg bg-muted/30">
-              <label htmlFor="apiKey" className="block text-sm font-medium mb-1">
-                OpenAI API-Schlüssel:
-              </label>
-              <div className="flex gap-2">
-                <input
-                  id="apiKey"
-                  type="password"
-                  value={apiKey}
-                  onChange={handleApiKeyChange}
-                  className="flex-1 p-2 border rounded"
-                  placeholder="sk-..."
-                />
-                <button
-                  onClick={saveApiKey}
-                  className="px-4 py-2 bg-gnb-primary text-white rounded hover:bg-gnb-secondary transition-colors"
-                >
-                  Speichern
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Ihr API-Schlüssel wird sicher lokal gespeichert und bei zukünftigen Besuchen automatisch geladen.
-              </p>
-            </div>
-          )}
-
-          {!showApiKeyInput && hasStoredKey && (
-            <div className="mt-4 p-3 border rounded-lg bg-green-50 text-green-800">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">API-Schlüssel gespeichert:</span>
-                  <code className="text-xs">sk-***...{apiKey.slice(-4)}</code>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowApiKeyInput(true)}
-                    className="text-xs px-2 py-1 border border-green-600 rounded hover:bg-green-100 transition-colors"
-                  >
-                    Ändern
-                  </button>
-                  <button
-                    onClick={deleteStoredKey}
-                    className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                  >
-                    Löschen
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="mt-4">
+            <ApiKeyManager 
+              selectedModel={selectedModel}
+              onApiKeysChange={handleApiKeysChange}
+              disabled={isProcessing}
+            />
+          </div>
           
           {!file ? (
             <div className="mt-6">
@@ -410,14 +335,6 @@ const UebersetzungPage = () => {
                     : 'KI-Übersetzung starten'}
                 </button>
                 
-                {!showApiKeyInput && !hasStoredKey && (
-                  <button
-                    className="bg-transparent hover:bg-muted text-gnb-primary py-2 px-4 border border-gnb-primary rounded-lg font-medium transition-colors"
-                    onClick={() => setShowApiKeyInput(true)}
-                  >
-                    API-Schlüssel eingeben
-                  </button>
-                )}
               </div>
             </div>
           )}

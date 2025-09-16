@@ -10,16 +10,61 @@ interface EditingToolsProps {
   disabled?: boolean;
 }
 
-// Model options with GPT-5 models as the new standard
+// AI Models grouped by provider
 const models = [
-  { value: 'gpt-5-2025-08-07', label: 'GPT-5 (empfohlen)', description: 'Neuestes und leistungsstärkstes OpenAI-Modell mit höchster Qualität' },
-  { value: 'gpt-5-mini-2025-08-07', label: 'GPT-5 mini (schneller)', description: 'Schnellere, kostengünstigere Version von GPT-5' },
-  { value: 'gpt-5-nano-2025-08-07', label: 'GPT-5 nano (am schnellsten)', description: 'Schnellste, günstigste Version von GPT-5' },
-  { value: 'gpt-4o', label: 'GPT-4o (bewährt)', description: 'Bewährtes OpenAI-Modell mit hoher Qualität' },
-  { value: 'gpt-4o-mini', label: 'GPT-4o mini (schneller)', description: 'Schnelleres und kostengünstigeres GPT-4 Modell' },
-  { value: 'gpt-4.5-preview', label: 'GPT-4.5 Preview (leistungsstark)', description: 'Leistungsstarkes GPT-4 Modell mit erweiterten Fähigkeiten' },
-  { value: 'gpt-4.1', label: 'GPT-4.1 (älteres Modell)', description: 'Älteres Modell mit guten Fähigkeiten' },
-  { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini (schneller)', description: 'Schnellere Version des GPT-4.1 Modells' },
+  // Claude Models (Anthropic) - Recommended for stability
+  { 
+    value: 'claude-opus-4-1-20250805', 
+    label: 'Claude 4 Opus (höchste Qualität)', 
+    description: 'Anthropics leistungsstärkstes Modell mit überlegener Denkfähigkeit',
+    provider: 'Anthropic'
+  },
+  { 
+    value: 'claude-sonnet-4-20250514', 
+    label: 'Claude 4 Sonnet (empfohlen)', 
+    description: 'Hochleistungsmodell mit außergewöhnlicher Effizienz und Genauigkeit',
+    provider: 'Anthropic'
+  },
+  { 
+    value: 'claude-3-5-haiku-20241022', 
+    label: 'Claude 3.5 Haiku (schnell)', 
+    description: 'Schnellstes Claude-Modell für effiziente Textbearbeitung',
+    provider: 'Anthropic'
+  },
+  
+  // OpenAI Models - Experimental GPT-5
+  { 
+    value: 'gpt-5-2025-08-07', 
+    label: 'GPT-5 (experimentell)', 
+    description: 'Neuestes OpenAI-Modell - aktuell instabil, verwende Claude als Alternative',
+    provider: 'OpenAI'
+  },
+  { 
+    value: 'gpt-5-mini-2025-08-07', 
+    label: 'GPT-5 mini (experimentell)', 
+    description: 'Schnellere GPT-5 Version - aktuell instabil',
+    provider: 'OpenAI'
+  },
+  { 
+    value: 'gpt-5-nano-2025-08-07', 
+    label: 'GPT-5 nano (experimentell)', 
+    description: 'Schnellste GPT-5 Version - aktuell instabil',
+    provider: 'OpenAI'
+  },
+  
+  // OpenAI Models - Stable versions
+  { 
+    value: 'gpt-4o', 
+    label: 'GPT-4o (bewährt)', 
+    description: 'Bewährtes OpenAI-Modell mit hoher Qualität',
+    provider: 'OpenAI'
+  },
+  { 
+    value: 'gpt-4o-mini', 
+    label: 'GPT-4o mini (schneller)', 
+    description: 'Schnelleres und kostengünstigeres GPT-4 Modell',
+    provider: 'OpenAI'
+  },
 ];
 
 const EditingTools = ({ 
@@ -31,7 +76,7 @@ const EditingTools = ({
   disabled = false 
 }: EditingToolsProps) => {
   const [activeMode, setActiveMode] = useState<'standard' | 'nurKorrektur' | 'kochbuch'>(initialMode);
-  const [activeModel, setActiveModel] = useState('gpt-4o');
+  const [activeModel, setActiveModel] = useState('claude-sonnet-4-20250514');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [systemMessage, setSystemMessage] = useState(defaultSystemMessage);
   const [showModeDropdown, setShowModeDropdown] = useState(false);
@@ -250,15 +295,35 @@ Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" un
             </button>
             
             {showModelDropdown && (
-              <div className="absolute z-10 w-full mt-1 bg-background border rounded-lg shadow-lg">
+              <div className="absolute z-10 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground border-b bg-muted/30">
+                  Anthropic (Empfohlen)
+                </div>
                 <ul>
-                  {models.map((model) => (
+                  {models.filter(m => m.provider === 'Anthropic').map((model) => (
                     <li key={model.value}>
                       <button 
                         className={`w-full text-left px-4 py-2 hover:bg-muted transition-colors ${activeModel === model.value ? 'bg-muted/50' : ''}`}
                         onClick={() => handleModelChange(model.value)}
                       >
-                        {model.label}
+                        <div className="font-medium">{model.label}</div>
+                        <div className="text-xs text-muted-foreground">{model.description}</div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground border-b bg-muted/30 mt-1">
+                  OpenAI
+                </div>
+                <ul>
+                  {models.filter(m => m.provider === 'OpenAI').map((model) => (
+                    <li key={model.value}>
+                      <button 
+                        className={`w-full text-left px-4 py-2 hover:bg-muted transition-colors ${activeModel === model.value ? 'bg-muted/50' : ''}`}
+                        onClick={() => handleModelChange(model.value)}
+                      >
+                        <div className="font-medium">{model.label}</div>
+                        <div className="text-xs text-muted-foreground">{model.description}</div>
                       </button>
                     </li>
                   ))}
