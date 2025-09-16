@@ -1,10 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: any | null;
+  session: any | null;
   userInfo: any | null;
   isAdmin: boolean;
   loading: boolean;
@@ -24,91 +22,75 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<any | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [userInfo, setUserInfo] = useState<any | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Check if user is admin
-          const { data: adminData } = await supabase
-            .from('admin_users')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-          
-          if (adminData) {
-            setIsAdmin(true);
-            setUserInfo(adminData);
-          } else {
-            // Check if regular user
-            const { data: userData } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle();
-            
-            setIsAdmin(false);
-            setUserInfo(userData);
-          }
-        } else {
-          setIsAdmin(false);
-          setUserInfo(null);
-        }
-        
-        setLoading(false);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
+    // Check for existing session in localStorage
+    const storedAuth = localStorage.getItem('gnb-auth');
+    if (storedAuth) {
+      const authData = JSON.parse(storedAuth);
+      setUser(authData.user);
+      setSession(authData.session);
+      setUserInfo(authData.userInfo);
+      setIsAdmin(authData.isAdmin);
+    }
+    setLoading(false);
   }, []);
 
   const login = async (username: string, password: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('auth-login', {
-        body: { username, password, type: 'user' }
-      });
-
-      if (error) throw error;
-      if (data.error) return { error: data.error };
-
+    // Simple password check - replace "gnb2024" with your desired password
+    if (password === 'gnb2024') {
+      const authData = {
+        user: { id: '1', username },
+        session: { access_token: 'mock-token', user: { id: '1', username } },
+        userInfo: { username },
+        isAdmin: false
+      };
+      
+      localStorage.setItem('gnb-auth', JSON.stringify(authData));
+      setUser(authData.user);
+      setSession(authData.session);
+      setUserInfo(authData.userInfo);
+      setIsAdmin(false);
+      
       return {};
-    } catch (error: any) {
-      return { error: error.message || 'Login fehlgeschlagen' };
+    } else {
+      return { error: 'Ungültiges Passwort' };
     }
   };
 
   const adminLogin = async (username: string, password: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('auth-login', {
-        body: { username, password, type: 'admin' }
-      });
-
-      if (error) throw error;
-      if (data.error) return { error: data.error };
-
+    // Same simple password check for admin
+    if (password === 'gnb2024') {
+      const authData = {
+        user: { id: '1', username },
+        session: { access_token: 'mock-token', user: { id: '1', username } },
+        userInfo: { username },
+        isAdmin: true
+      };
+      
+      localStorage.setItem('gnb-auth', JSON.stringify(authData));
+      setUser(authData.user);
+      setSession(authData.session);
+      setUserInfo(authData.userInfo);
+      setIsAdmin(true);
+      
       return {};
-    } catch (error: any) {
-      return { error: error.message || 'Admin Login fehlgeschlagen' };
+    } else {
+      return { error: 'Ungültiges Admin-Passwort' };
     }
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem('gnb-auth');
+    setUser(null);
+    setSession(null);
+    setUserInfo(null);
+    setIsAdmin(false);
   };
 
   const value = {
