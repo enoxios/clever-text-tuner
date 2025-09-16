@@ -6,9 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, Languages, Shield, User } from 'lucide-react';
 
 const Index = () => {
-  const { user, isAdmin } = useAuth();
+  const { isAuthenticated } = useAuth();
 
-  if (user) {
+  if (isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50 p-4">
         <Card className="w-full max-w-2xl">
@@ -34,14 +34,12 @@ const Index = () => {
                   <span>Übersetzung</span>
                 </Button>
               </Link>
-              {isAdmin && (
-                <Link to="/admin" className="md:col-span-2">
-                  <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                    <Shield className="h-6 w-6" />
-                    <span>Admin Panel</span>
-                  </Button>
-                </Link>
-              )}
+              <Link to="/admin" className="md:col-span-2">
+                <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
+                  <Shield className="h-6 w-6" />
+                  <span>Admin Panel</span>
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
@@ -79,21 +77,12 @@ const Index = () => {
           </div>
           
           <div className="text-center space-y-4">
-            <Link to="/login">
+            <Link to="/lektorat">
               <Button size="lg" className="w-full sm:w-auto">
                 <User className="mr-2 h-5 w-5" />
-                Anmelden
+                Zur App
               </Button>
             </Link>
-            
-            <div className="flex justify-center gap-4 pt-4">
-              <Link to="/admin-login">
-                <Button variant="ghost" size="sm" className="text-xs">
-                  <Shield className="mr-1 h-3 w-3" />
-                  Admin Login
-                </Button>
-              </Link>
-            </div>
           </div>
         </CardContent>
       </Card>

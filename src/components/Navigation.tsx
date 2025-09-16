@@ -7,7 +7,7 @@ import { LogOut, Settings } from 'lucide-react';
 const Navigation = () => {
   const location = useLocation();
   const path = location.pathname;
-  const { userInfo, isAdmin, logout } = useAuth();
+  const { logout } = useAuth();
 
   return (
     <nav className="flex justify-between items-center mb-8">
@@ -35,22 +35,7 @@ const Navigation = () => {
         </Link>
       </div>
       
-      <div className="flex items-center gap-3">
-        {userInfo && (
-          <span className="text-sm text-muted-foreground">
-            {userInfo.username} {isAdmin && '(Admin)'}
-          </span>
-        )}
-        
-        {isAdmin && (
-          <Link to="/admin">
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Admin Panel
-            </Button>
-          </Link>
-        )}
-        
+      <div className="flex items-center gap-3">        
         <Button 
           variant="outline" 
           size="sm" 

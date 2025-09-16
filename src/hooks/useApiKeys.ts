@@ -11,7 +11,7 @@ export const useApiKeys = () => {
   const [apiKeys, setApiKeys] = useState<ApiKeys>({ openai_api_key: null, claude_api_key: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { session } = useAuth();
+  const { isAuthenticated, getAuthToken } = useAuth();
 
   // Load API keys from Supabase or fallback to localStorage
   const loadApiKeys = async () => {
@@ -19,12 +19,12 @@ export const useApiKeys = () => {
       setLoading(true);
       setError(null);
 
-      if (session?.access_token) {
+      if (isAuthenticated && getAuthToken()) {
         // Try to load from Supabase
         const { data, error } = await supabase.functions.invoke('manage-api-keys', {
           method: 'GET',
           headers: {
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${getAuthToken()}`,
           },
         });
 
@@ -81,11 +81,11 @@ export const useApiKeys = () => {
       }
 
       // Save to Supabase if authenticated
-      if (session?.access_token) {
+      if (isAuthenticated && getAuthToken()) {
         const { error } = await supabase.functions.invoke('manage-api-keys', {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${getAuthToken()}`,
           },
           body: {
             openai_api_key: openaiKey || null,
@@ -118,11 +118,11 @@ export const useApiKeys = () => {
       localStorage.removeItem('claude-api-key');
 
       // Remove from Supabase if authenticated
-      if (session?.access_token) {
+      if (isAuthenticated && getAuthToken()) {
         const { error } = await supabase.functions.invoke('manage-api-keys', {
           method: 'DELETE',
           headers: {
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${getAuthToken()}`,
           },
         });
 
@@ -143,7 +143,7 @@ export const useApiKeys = () => {
 
   useEffect(() => {
     loadApiKeys();
-  }, [session?.access_token]);
+  }, [isAuthenticated]);
 
   return {
     apiKeys,

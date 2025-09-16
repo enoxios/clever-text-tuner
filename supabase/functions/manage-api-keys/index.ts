@@ -31,19 +31,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify the user token
+    // Verify the simple auth token
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
-    if (userError || !user) {
-      console.error('Auth error:', userError);
+    if (token !== 'admin123') {
       return new Response(
         JSON.stringify({ error: 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const userId = user.id;
+    // Use a fixed user ID for the simple auth system
+    const userId = 'simple-auth-user';
 
     switch (req.method) {
       case 'GET': {

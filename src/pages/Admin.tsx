@@ -26,19 +26,19 @@ const Admin = () => {
   const [newPassword, setNewPassword] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const { user, isAdmin, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     if (!loading) {
-      if (!user || !isAdmin) {
-        navigate('/login');
+      if (!isAuthenticated) {
+        navigate('/lektorat');
         return;
       }
       fetchUsers();
     }
-  }, [user, isAdmin, loading, navigate]);
+  }, [isAuthenticated, loading, navigate]);
 
   const fetchUsers = async () => {
     try {
