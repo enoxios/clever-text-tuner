@@ -26,7 +26,7 @@ export const removeMarkdown = (text: string): string => {
     .trim();
 };
 
-// Process API response to extract text and changes
+// Process API response to extract text and changes - robust Markdown support
 export const processLektoratResponse = (content: string): LektoratResult => {
   const result: LektoratResult = {
     text: '',
@@ -34,48 +34,92 @@ export const processLektoratResponse = (content: string): LektoratResult => {
   };
   
   try {
-    const textMatch = content.match(/LEKTORIERTER TEXT:\s*\n([\s\S]*?)(?=ÄNDERUNGEN:|$)/i);
-    const changesMatch = content.match(/ÄNDERUNGEN:\s*\n([\s\S]*)/i);
+    // Robuste Regex für verschiedene Formatierungen (analog zu claudeService.ts)
+    let textMatch = content.match(/\*{0,2}LEKTORIERTER TEXT\*{0,2}:?\s*\n+([\s\S]*?)(?=\n+\*{0,2}ÄNDERUNGEN\*{0,2}:|$)/i);
+    let changesMatch = content.match(/\*{0,2}ÄNDERUNGEN\*{0,2}:?\s*\n+([\s\S]*)/i);
     
-    if (textMatch && textMatch[1]) {
-      result.text = textMatch[1].trim();
-    } else {
+    // Fallback: Versuche alternative Regex-Pattern
+    if (!textMatch) {
+      textMatch = content.match(/(?:LEKTORIERTER\s+TEXT|LEKTORIERTER_TEXT|LEKTORAT).*?:\s*\n+([\s\S]*?)(?=\n+(?:ÄNDERUNGEN|CHANGES).*?:|$)/i);
+    }
+    
+    if (!changesMatch) {
+      changesMatch = content.match(/(?:ÄNDERUNGEN|CHANGES).*?:\s*\n+([\s\S]*)/i);
+    }
+
+    // Zusätzliche Fallback-Pattern für verschiedene Formate
+    if (!textMatch) {
       const altTextMatch = content.match(/Lektorierter Text\s*\n([\s\S]*?)(?=Änderungen|$)/i);
       if (altTextMatch && altTextMatch[1]) {
-        result.text = altTextMatch[1].trim();
-      } else {
-        result.text = content;
+        textMatch = altTextMatch;
       }
+    }
+
+    // Log für Debugging
+    console.log('processLektoratResponse - Content preview:', content.substring(0, 300));
+    console.log('processLektoratResponse - Text gefunden:', textMatch ? 'JA' : 'NEIN');
+    console.log('processLektoratResponse - Änderungen gefunden:', changesMatch ? 'JA' : 'NEIN');
+    
+    if (textMatch && textMatch[1]) {
+      // Bereinige Markdown-Formatierung aus dem Text
+      result.text = textMatch[1]
+        .replace(/\*{1,2}([^*]*?)\*{1,2}/g, '$1') // Entferne **bold** und *italic*
+        .trim();
+      console.log('processLektoratResponse - Extrahierter Text Länge:', result.text.length);
+    } else {
+      console.log('processLektoratResponse - Fallback zu vollständigem Content');
+      result.text = content;
     }
     
     if (changesMatch && changesMatch[1]) {
-      const changesText = changesMatch[1].trim();
+      const changesText = changesMatch[1]
+        .replace(/\*{1,2}([^*]*?)\*{1,2}/g, '$1') // Entferne Markdown-Formatierung
+        .trim();
+      
+      console.log('processLektoratResponse - Änderungen Text Länge:', changesText.length);
       
       const lines = changesText.split('\n').filter(line => line.trim().length > 0);
       
       for (const line of lines) {
         const trimmedLine = line.trim();
         
-        if (trimmedLine.match(/^KATEGORIE:|^Kategorie:/i)) {
+        // Erweiterte Kategorie-Erkennung (auch für Markdown)
+        if (trimmedLine.match(/^(?:\*{0,2})?(?:KATEGORIE|Kategorie)(?:\*{0,2})?:/i)) {
+          const categoryText = trimmedLine
+            .replace(/^(?:\*{0,2})?(?:KATEGORIE|Kategorie)(?:\*{0,2})?:/i, '')
+            .replace(/\*{1,2}([^*]*?)\*{1,2}/g, '$1') // Entferne Markdown
+            .trim();
           result.changes.push({
-            text: trimmedLine.replace(/^KATEGORIE:|^Kategorie:/i, '').trim(),
+            text: categoryText,
             isCategory: true
           });
         } else if (trimmedLine.match(/^[-•*]\s+/)) {
+          const changeText = trimmedLine
+            .replace(/^[-•*]\s+/, '')
+            .replace(/\*{1,2}([^*]*?)\*{1,2}/g, '$1') // Entferne Markdown
+            .trim();
           result.changes.push({
-            text: trimmedLine.replace(/^[-•*]\s+/, '').trim(),
+            text: changeText,
             isCategory: false
           });
         } else if (trimmedLine.match(/^\d+[\.\)]\s+/)) {
+          const changeText = trimmedLine
+            .replace(/^\d+[\.\)]\s+/, '')
+            .replace(/\*{1,2}([^*]*?)\*{1,2}/g, '$1') // Entferne Markdown
+            .trim();
           result.changes.push({
-            text: trimmedLine.replace(/^\d+[\.\)]\s+/, '').trim(),
+            text: changeText,
             isCategory: false
           });
         }
       }
+      
+      console.log('processLektoratResponse - Anzahl extrahierter Änderungen:', result.changes.length);
+    } else {
+      console.log('processLektoratResponse - Keine Änderungen gefunden');
     }
   } catch (e) {
-    console.error('Error extracting text and changes:', e);
+    console.error('processLektoratResponse - Error extracting text and changes:', e);
   }
   
   return result;
