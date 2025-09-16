@@ -34,6 +34,8 @@ export const processLektoratResponse = (content: string): LektoratResult => {
   };
   
   try {
+    console.log('processLektoratResponse - Full content:', content);
+    
     // Robuste Regex für verschiedene Formatierungen (analog zu claudeService.ts)
     let textMatch = content.match(/\*{0,2}LEKTORIERTER TEXT\*{0,2}:?\s*\n+([\s\S]*?)(?=\n+\*{0,2}ÄNDERUNGEN\*{0,2}:|$)/i);
     let changesMatch = content.match(/\*{0,2}ÄNDERUNGEN\*{0,2}:?\s*\n+([\s\S]*)/i);
@@ -55,6 +57,48 @@ export const processLektoratResponse = (content: string): LektoratResult => {
       }
     }
 
+    // NEW: Enhanced fallback parsing for unstructured responses
+    if (!textMatch && !changesMatch) {
+      console.log('processLektoratResponse - Trying unstructured parsing');
+      
+      // Check if content contains any typical change indicators
+      const hasChangeIndicators = /(?:geändert|korrigiert|verbessert|angepasst|ersetzt|hinzugefügt|entfernt)/i.test(content);
+      
+      if (hasChangeIndicators) {
+        // Split content into sentences and try to identify text vs changes
+        const sentences = content.split(/[.!?]\s+/).map(s => s.trim()).filter(s => s.length > 0);
+        
+        let textContent = '';
+        let changeContent = '';
+        
+        for (const sentence of sentences) {
+          if (/(?:geändert|korrigiert|verbessert|angepasst|ersetzt|hinzugefügt|entfernt)/i.test(sentence)) {
+            changeContent += sentence + '. ';
+          } else {
+            textContent += sentence + '. ';
+          }
+        }
+        
+        if (textContent.trim()) {
+          result.text = textContent.trim();
+          console.log('processLektoratResponse - Extracted text from unstructured content');
+        }
+        
+        if (changeContent.trim()) {
+          // Convert change content to structured changes
+          result.changes.push({
+            text: 'Automatisch erkannte Änderungen',
+            isCategory: true
+          });
+          result.changes.push({
+            text: changeContent.trim(),
+            isCategory: false
+          });
+          console.log('processLektoratResponse - Created changes from unstructured content');
+        }
+      }
+    }
+
     // Log für Debugging
     console.log('processLektoratResponse - Content preview:', content.substring(0, 300));
     console.log('processLektoratResponse - Text gefunden:', textMatch ? 'JA' : 'NEIN');
@@ -66,7 +110,7 @@ export const processLektoratResponse = (content: string): LektoratResult => {
         .replace(/\*{1,2}([^*]*?)\*{1,2}/g, '$1') // Entferne **bold** und *italic*
         .trim();
       console.log('processLektoratResponse - Extrahierter Text Länge:', result.text.length);
-    } else {
+    } else if (!result.text) {
       console.log('processLektoratResponse - Fallback zu vollständigem Content');
       result.text = content;
     }
@@ -77,6 +121,7 @@ export const processLektoratResponse = (content: string): LektoratResult => {
         .trim();
       
       console.log('processLektoratResponse - Änderungen Text Länge:', changesText.length);
+      console.log('processLektoratResponse - Änderungen Text Content:', changesText);
       
       const lines = changesText.split('\n').filter(line => line.trim().length > 0);
       
@@ -111,13 +156,50 @@ export const processLektoratResponse = (content: string): LektoratResult => {
             text: changeText,
             isCategory: false
           });
+        } else if (trimmedLine.length > 10) {
+          // NEW: Handle unstructured lines as changes
+          result.changes.push({
+            text: trimmedLine.replace(/\*{1,2}([^*]*?)\*{1,2}/g, '$1'),
+            isCategory: false
+          });
         }
       }
       
       console.log('processLektoratResponse - Anzahl extrahierter Änderungen:', result.changes.length);
-    } else {
-      console.log('processLektoratResponse - Keine Änderungen gefunden');
     }
+    
+    // NEW: Final fallback - if no changes found but we have content, try to extract any changes
+    if (result.changes.length === 0 && content.length > 100) {
+      console.log('processLektoratResponse - Final fallback for changes extraction');
+      
+      // Look for any structured content that might be changes
+      const paragraphs = content.split('\n\n').filter(p => p.trim().length > 0);
+      
+      for (const paragraph of paragraphs) {
+        const lines = paragraph.split('\n').filter(l => l.trim().length > 0);
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          
+          // Look for lines that seem like changes (contain certain keywords or patterns)
+          if (trimmedLine.match(/(?:wurde|wurden|ist|sind|haben|hat)\s+(?:geändert|korrigiert|verbessert|angepasst|ersetzt)/i) ||
+              trimmedLine.match(/^[-•*]\s+/) ||
+              trimmedLine.match(/^\d+[\.\)]\s+/) ||
+              trimmedLine.match(/(?:Änderung|Korrektur|Verbesserung|Anpassung)/i)) {
+            
+            result.changes.push({
+              text: trimmedLine.replace(/^[-•*\d\.\)\s]+/, '').replace(/\*{1,2}([^*]*?)\*{1,2}/g, '$1').trim(),
+              isCategory: trimmedLine.includes(':') && !trimmedLine.match(/^[-•*\d]/),
+            });
+          }
+        }
+      }
+      
+      if (result.changes.length > 0) {
+        console.log('processLektoratResponse - Found changes in final fallback:', result.changes.length);
+      }
+    }
+    
   } catch (e) {
     console.error('processLektoratResponse - Error extracting text and changes:', e);
   }
