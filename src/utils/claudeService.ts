@@ -15,7 +15,7 @@ export const callClaude = async (
 ): Promise<ClaudeResponse | null> => {
   try {
     // Standardwert für den System-Message
-    let systemMessage = customSystemMessage || 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
+    let systemMessage = customSystemMessage || 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort EXAKT in zwei klar getrennte Teile ohne Markdown-Formatierung:\n\nLEKTORIERTER TEXT:\n[Der lektorierte Text hier]\n\nÄNDERUNGEN:\n[Die Liste der Änderungen hier]';
     
     // Füge Glossar zum System-Message hinzu, wenn vorhanden
     if (glossaryEntries && glossaryEntries.length > 0) {
@@ -111,27 +111,45 @@ export const callClaude = async (
       };
     }
 
-    // Teile den Inhalt in Text und Änderungen auf
-    const textMatch = content.match(/LEKTORIERTER TEXT:\s*\n([\s\S]*?)(?=ÄNDERUNGEN:|$)/i);
-    const changesMatch = content.match(/ÄNDERUNGEN:\s*\n([\s\S]*)/i);
+    // Teile den Inhalt in Text und Änderungen auf - erweiterte Regex für Markdown-Formatierung
+    const textMatch = content.match(/(?:\*{1,2})?LEKTORIERTER TEXT(?:\*{1,2})?:?\s*\n([\s\S]*?)(?=(?:\*{1,2})?ÄNDERUNGEN(?:\*{1,2})?:|$)/i);
+    const changesMatch = content.match(/(?:\*{1,2})?ÄNDERUNGEN(?:\*{1,2})?:?\s*\n([\s\S]*)/i);
 
-    // Log für Debugging
+    // Log für erweiterte Debugging
     console.log('Claude API Antwort erhalten');
+    console.log('Content preview für Debugging:', content.substring(0, 200));
     console.log('Extrahierter Text:', textMatch ? 'Gefunden' : 'Nicht gefunden');
     console.log('Extrahierte Änderungen:', changesMatch ? 'Gefunden' : 'Nicht gefunden');
+    
+    if (textMatch) {
+      console.log('Text match preview:', textMatch[1].substring(0, 100));
+    }
+    if (changesMatch) {
+      console.log('Changes match preview:', changesMatch[1].substring(0, 100));
+    }
 
     // If we can't find the sections, return the entire content as text with a note
     if (!textMatch && !changesMatch) {
       console.log('LEKTORIERTER TEXT and ÄNDERUNGEN sections not found, returning full content');
+      console.log('Full content for debugging:', content);
       return {
         text: content.trim(),
-        changes: 'Die API-Antwort enthielt keine strukturierten Abschnitte mit "LEKTORIERTER TEXT" und "ÄNDERUNGEN".'
+        changes: 'Die API-Antwort enthielt keine strukturierten Abschnitte mit "LEKTORIERTER TEXT" und "ÄNDERUNGEN". Bitte überprüfen Sie die Formatierung.'
       };
     }
 
+    // Bereinige den Text von möglichen Markdown-Resten
+    const cleanText = textMatch && textMatch[1] ? 
+      textMatch[1].trim().replace(/^\*+|\*+$/g, '') : 
+      content.trim();
+    
+    const cleanChanges = changesMatch && changesMatch[1] ? 
+      changesMatch[1].trim().replace(/^\*+|\*+$/g, '') : 
+      'Keine detaillierten Änderungen verfügbar.';
+
     return {
-      text: textMatch && textMatch[1] ? textMatch[1].trim() : content.trim(),
-      changes: changesMatch && changesMatch[1] ? changesMatch[1].trim() : 'Keine detaillierten Änderungen verfügbar.'
+      text: cleanText,
+      changes: cleanChanges
     };
   } catch (error) {
     console.error('Claude API-Fehler:', error);
