@@ -142,8 +142,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const adminLogin = async (username: string, password: string) => {
-    // For now, use the same login but we could implement separate admin login later
-    return login(username, password);
+    try {
+      const { data, error } = await supabase.functions.invoke('auth-login', {
+        body: {
+          username,
+          password,
+          type: 'admin'
+        }
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      if (data.error) {
+        return { error: data.error };
+      }
+
+      return {};
+    } catch (err) {
+      return { error: 'Ein unerwarteter Fehler ist aufgetreten' };
+    }
   };
 
   const logout = async () => {
