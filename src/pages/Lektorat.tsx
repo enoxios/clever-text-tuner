@@ -38,23 +38,7 @@ const LektoratPage = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/login');
-    }
-  }, [user, loading, navigate]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
+  // All useState hooks MUST come before any conditional returns
   const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
@@ -84,6 +68,25 @@ const LektoratPage = () => {
   const [textChunks, setTextChunks] = useState<TextChunk[]>([]);
   const [chunkProgress, setChunkProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
   const [manualInputMode, setManualInputMode] = useState<boolean>(false);
+
+  // Authentication and loading checks AFTER all hooks
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/login');
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   const handleApiKeysChange = (openaiKey: string, claudeKey: string) => {
     setOpenaiApiKey(openaiKey);
