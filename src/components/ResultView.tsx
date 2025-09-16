@@ -65,7 +65,7 @@ const ResultView = ({
   const handleComparisonDownload = async () => {
     try {
       setIsDownloadingComparison(true);
-      await downloadComparisonDocument(originalText, editedText, `${fileName}-vergleich`);
+      await downloadComparisonDocument(originalText, editedText, `${fileName}-vergleich`, includeChanges, changes);
     } catch (err) {
       console.error('Comparison download error:', err);
     } finally {

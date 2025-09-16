@@ -1,4 +1,3 @@
-
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, SectionType, CommentRangeStart, CommentRangeEnd, CommentReference } from 'docx';
 import { ChangeItem } from './documentTypes';
 import { compareTexts } from './compareUtils';
@@ -103,7 +102,9 @@ export const generateWordDocument = async (
 // New function to generate comparison document with tracked changes as comments
 export const generateComparisonDocument = async (
   originalText: string,
-  editedText: string
+  editedText: string,
+  includeChanges: boolean = false,
+  changes: ChangeItem[] = []
 ): Promise<Blob> => {
   const differences = compareTexts(originalText, editedText);
   
@@ -246,6 +247,49 @@ export const generateComparisonDocument = async (
     })
   );
 
+  // Add structured changes list if requested
+  if (includeChanges && changes.length > 0) {
+    paragraphs.push(
+      new Paragraph({
+        children: [new TextRun({ text: '', break: 2 })],
+      }),
+      new Paragraph({
+        text: 'Strukturierte Änderungen',
+        heading: HeadingLevel.HEADING_1,
+        spacing: {
+          after: 200,
+        },
+      })
+    );
+
+    changes.forEach(change => {
+      if (change.isCategory) {
+        paragraphs.push(
+          new Paragraph({
+            text: change.text,
+            heading: HeadingLevel.HEADING_2,
+            spacing: {
+              after: 200,
+            },
+          })
+        );
+      } else {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `• ${change.text}`,
+              }),
+            ],
+            spacing: {
+              after: 120,
+            },
+          })
+        );
+      }
+    });
+  }
+
   const doc = new Document({
     comments: {
       children: comments,
@@ -292,10 +336,12 @@ export const downloadWordDocument = async (
 export const downloadComparisonDocument = async (
   originalText: string,
   editedText: string,
-  fileName = 'textvergleich'
+  fileName = 'textvergleich',
+  includeChanges: boolean = false,
+  changes: ChangeItem[] = []
 ): Promise<void> => {
   try {
-    const blob = await generateComparisonDocument(originalText, editedText);
+    const blob = await generateComparisonDocument(originalText, editedText, includeChanges, changes);
     
     const url = URL.createObjectURL(blob);
     
