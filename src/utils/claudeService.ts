@@ -111,13 +111,42 @@ export const callClaude = async (
       };
     }
 
-    // Teile den Inhalt in Text und Änderungen auf - erweiterte Regex für Markdown-Formatierung
-    const textMatch = content.match(/(?:\*{1,2})?LEKTORIERTER TEXT(?:\*{1,2})?:?\s*\n([\s\S]*?)(?=(?:\*{1,2})?ÄNDERUNGEN(?:\*{1,2})?:|$)/i);
-    const changesMatch = content.match(/(?:\*{1,2})?ÄNDERUNGEN(?:\*{1,2})?:?\s*\n([\s\S]*)/i);
+    // Teile den Inhalt in Text und Änderungen auf - robuste Regex für verschiedene Formatierungen
+    let textMatch = content.match(/\*{0,2}LEKTORIERTER TEXT\*{0,2}:?\s*\n+([\s\S]*?)(?=\n+\*{0,2}ÄNDERUNGEN\*{0,2}:|$)/i);
+    let changesMatch = content.match(/\*{0,2}ÄNDERUNGEN\*{0,2}:?\s*\n+([\s\S]*)/i);
+    
+    // Fallback: Versuche alternative Regex-Pattern
+    if (!textMatch) {
+      // Versuche mit flexiblerer Erkennung
+      textMatch = content.match(/(?:LEKTORIERTER\s+TEXT|LEKTORIERTER_TEXT|LEKTORAT).*?:\s*\n+([\s\S]*?)(?=\n+(?:ÄNDERUNGEN|CHANGES).*?:|$)/i);
+    }
+    
+    if (!changesMatch) {
+      // Versuche mit flexiblerer Erkennung
+      changesMatch = content.match(/(?:ÄNDERUNGEN|CHANGES).*?:\s*\n+([\s\S]*)/i);
+    }
 
     // Log für erweiterte Debugging
     console.log('Claude API Antwort erhalten');
-    console.log('Content preview für Debugging:', content.substring(0, 200));
+    console.log('Content preview für Debugging:', content.substring(0, 300));
+    console.log('Searching for LEKTORIERTER TEXT pattern...');
+    console.log('Searching for ÄNDERUNGEN pattern...');
+    
+    // Test verschiedene Regex-Varianten für Debugging
+    const testPatterns = [
+      /\*{0,2}LEKTORIERTER TEXT\*{0,2}:?\s*\n+([\s\S]*?)(?=\n+\*{0,2}ÄNDERUNGEN\*{0,2}:|$)/i,
+      /\*\*LEKTORIERTER TEXT\*\*:\s*\n+([\s\S]*?)(?=\n+\*\*ÄNDERUNGEN\*\*:|$)/i,
+      /LEKTORIERTER TEXT:\s*\n+([\s\S]*?)(?=\n+ÄNDERUNGEN:|$)/i
+    ];
+    
+    testPatterns.forEach((pattern, index) => {
+      const testMatch = content.match(pattern);
+      console.log(`Pattern ${index + 1} match:`, testMatch ? 'FOUND' : 'NOT FOUND');
+      if (testMatch) {
+        console.log(`Pattern ${index + 1} text preview:`, testMatch[1].substring(0, 50));
+      }
+    });
+    
     console.log('Extrahierter Text:', textMatch ? 'Gefunden' : 'Nicht gefunden');
     console.log('Extrahierte Änderungen:', changesMatch ? 'Gefunden' : 'Nicht gefunden');
     
