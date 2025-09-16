@@ -38,6 +38,33 @@ export type Database = {
         }
         Relationships: []
       }
+      simple_api_keys: {
+        Row: {
+          claude_api_key: string | null
+          created_at: string
+          id: string
+          openai_api_key: string | null
+          updated_at: string
+          user_identifier: string
+        }
+        Insert: {
+          claude_api_key?: string | null
+          created_at?: string
+          id?: string
+          openai_api_key?: string | null
+          updated_at?: string
+          user_identifier: string
+        }
+        Update: {
+          claude_api_key?: string | null
+          created_at?: string
+          id?: string
+          openai_api_key?: string | null
+          updated_at?: string
+          user_identifier?: string
+        }
+        Relationships: []
+      }
       user_api_keys: {
         Row: {
           claude_api_key: string | null

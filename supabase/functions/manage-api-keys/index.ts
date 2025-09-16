@@ -47,9 +47,9 @@ Deno.serve(async (req) => {
     switch (req.method) {
       case 'GET': {
         const { data, error } = await supabase
-          .from('user_api_keys')
+          .from('simple_api_keys')
           .select('openai_api_key, claude_api_key')
-          .eq('user_id', userId)
+          .eq('user_identifier', 'simple-auth-user')
           .single();
 
         if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
@@ -78,37 +78,17 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Check if record exists
-        const { data: existing } = await supabase
-          .from('user_api_keys')
-          .select('id')
-          .eq('user_id', userId)
-          .single();
-
-        let result;
-        if (existing) {
-          // Update existing record
-          result = await supabase
-            .from('user_api_keys')
-            .update({
-              ...(body.openai_api_key !== undefined && { openai_api_key: body.openai_api_key }),
-              ...(body.claude_api_key !== undefined && { claude_api_key: body.claude_api_key }),
-            })
-            .eq('user_id', userId)
-            .select();
-        } else {
-          // Insert new record
-          result = await supabase
-            .from('user_api_keys')
-            .insert({
-              user_id: userId,
-              openai_api_key: body.openai_api_key || null,
-              claude_api_key: body.claude_api_key || null,
-            })
-            .select();
-        }
-
-        const { data, error } = result;
+        // Upsert the API keys using the simple table
+        const { data, error } = await supabase
+          .from('simple_api_keys')
+          .upsert({
+            user_identifier: 'simple-auth-user',
+            openai_api_key: body.openai_api_key || null,
+            claude_api_key: body.claude_api_key || null,
+          }, {
+            onConflict: 'user_identifier'
+          })
+          .select('openai_api_key, claude_api_key');
         
         if (error) {
           console.error('Database error:', error);
@@ -119,16 +99,16 @@ Deno.serve(async (req) => {
         }
 
         return new Response(
-          JSON.stringify({ success: true, data }),
+          JSON.stringify(data?.[0] || { openai_api_key: null, claude_api_key: null }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
       case 'DELETE': {
         const { error } = await supabase
-          .from('user_api_keys')
+          .from('simple_api_keys')
           .delete()
-          .eq('user_id', userId);
+          .eq('user_identifier', 'simple-auth-user');
 
         if (error) {
           console.error('Database error:', error);
