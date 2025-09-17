@@ -87,13 +87,13 @@ serve(async (req) => {
       );
     }
 
-    // Verify password using bcrypt - using Deno compatible version
+    // Verify password using bcryptjs - fully Deno compatible
     console.log('Attempting password verification for user:', username);
     console.log('Stored hash:', user.password_hash);
     
-    // Import BCrypt from a Deno-compatible source
-    const { compare } = await import('https://deno.land/x/bcrypt@v0.4.1/mod.ts');
-    const passwordMatch = await compare(password, user.password_hash);
+    // Import BCrypt from ESM.sh (guaranteed Deno compatibility)
+    const bcrypt = await import('https://esm.sh/bcryptjs@2.4.3');
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
     console.log('Password match result:', passwordMatch);
 
     if (!passwordMatch) {
