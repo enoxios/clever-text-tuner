@@ -28,6 +28,7 @@ import {
 } from '@/utils/documentUtils';
 import { callAI, processAIChunks } from '@/utils/aiServiceRouter';
 import ApiKeyManager from '@/components/ApiKeyManager';
+import { PasswordFixer } from '@/components/PasswordFixer';
 
 interface GlossaryEntry {
   term: string;
@@ -381,6 +382,8 @@ ${apiResponse.changes}`);
       </div>
       
       <Navigation />
+      
+      <PasswordFixer />
       
       <div className="space-y-8">
         <div className="card glass-card p-6 rounded-xl shadow-sm">
