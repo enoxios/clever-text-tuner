@@ -68,6 +68,7 @@ const LektoratPage = () => {
   const [textChunks, setTextChunks] = useState<TextChunk[]>([]);
   const [chunkProgress, setChunkProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
   const [manualInputMode, setManualInputMode] = useState<boolean>(false);
+  const [usernameInput, setUsernameInput] = useState<string>('');
   const [passwordInput, setPasswordInput] = useState<string>('');
   const [showPasswordError, setShowPasswordError] = useState<boolean>(false);
 
@@ -82,7 +83,7 @@ const LektoratPage = () => {
   if (!isAuthenticated) {
     const handlePasswordSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      const result = await login('admin', passwordInput);
+      const result = await login(usernameInput, passwordInput);
       if (result.error) {
         setShowPasswordError(true);
         setTimeout(() => setShowPasswordError(false), 3000);
@@ -103,8 +104,23 @@ const LektoratPage = () => {
           
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div>
+              <label htmlFor="username" className="block text-sm font-medium mb-2">
+                Benutzername:
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-gnb-primary focus:border-transparent"
+                placeholder="Benutzername..."
+                required
+              />
+            </div>
+            
+            <div>
               <label htmlFor="password" className="block text-sm font-medium mb-2">
-                Passwort eingeben:
+                Passwort:
               </label>
               <input
                 id="password"
