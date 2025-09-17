@@ -33,16 +33,22 @@ serve(async (req) => {
 
     console.log('Generating hash for password:', password);
 
-    // Generate hash using the same Deno bcrypt library we use for verification
+    // Generate hash using bcrypt - use stable version
     let newHash = '';
     try {
-      const { hashSync } = await import('https://deno.land/x/bcrypt@v0.4.1/mod.ts');
-      newHash = hashSync(password, 10);
-      console.log('Generated new hash:', newHash);
+      // Import bcrypt functions
+      const bcrypt = await import('https://deno.land/x/bcrypt@v0.2.4/mod.ts');
+      
+      console.log('Bcrypt module loaded successfully');
+      
+      // Generate salt and hash - bcrypt.hash automatically handles salt generation
+      newHash = await bcrypt.hash(password, 10);
+      console.log('Generated new hash successfully, length:', newHash.length);
     } catch (hashError) {
       console.error('Hash generation error:', hashError);
+      console.error('Error details:', JSON.stringify(hashError, null, 2));
       return new Response(
-        JSON.stringify({ error: 'Hash-Generierung fehlgeschlagen' }),
+        JSON.stringify({ error: 'Hash-Generierung fehlgeschlagen: ' + hashError.message }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -52,8 +58,8 @@ serve(async (req) => {
 
     // Test the hash immediately
     try {
-      const { compareSync } = await import('https://deno.land/x/bcrypt@v0.4.1/mod.ts');
-      const testResult = compareSync(password, newHash);
+      const bcrypt = await import('https://deno.land/x/bcrypt@v0.2.4/mod.ts');
+      const testResult = await bcrypt.compare(password, newHash);
       console.log('Hash test result:', testResult);
 
       if (!testResult) {
@@ -67,8 +73,9 @@ serve(async (req) => {
       }
     } catch (testError) {
       console.error('Hash test error:', testError);
+      console.error('Test error details:', JSON.stringify(testError, null, 2));
       return new Response(
-        JSON.stringify({ error: 'Hash-Test fehlgeschlagen' }),
+        JSON.stringify({ error: 'Hash-Test fehlgeschlagen: ' + testError.message }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
