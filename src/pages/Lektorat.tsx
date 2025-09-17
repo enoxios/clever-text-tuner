@@ -147,6 +147,10 @@ const LektoratPage = () => {
               Anmelden
             </button>
           </form>
+          
+          <div className="mt-6 pt-6 border-t">
+            <PasswordFixer />
+          </div>
         </div>
       </div>
     );
@@ -382,8 +386,6 @@ ${apiResponse.changes}`);
       </div>
       
       <Navigation />
-      
-      <PasswordFixer />
       
       <div className="space-y-8">
         <div className="card glass-card p-6 rounded-xl shadow-sm">
