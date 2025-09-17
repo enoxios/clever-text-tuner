@@ -28,7 +28,6 @@ import {
 } from '@/utils/documentUtils';
 import { callAI, processAIChunks } from '@/utils/aiServiceRouter';
 import ApiKeyManager from '@/components/ApiKeyManager';
-import { PasswordFixer } from '@/components/PasswordFixer';
 
 interface GlossaryEntry {
   term: string;
@@ -147,10 +146,6 @@ const LektoratPage = () => {
               Anmelden
             </button>
           </form>
-          
-          <div className="mt-6 pt-6 border-t">
-            <PasswordFixer />
-          </div>
         </div>
       </div>
     );
