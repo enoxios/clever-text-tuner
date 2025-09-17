@@ -77,7 +77,7 @@ const UebersetzungPage = () => {
   if (!isAuthenticated) {
     const handlePasswordSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      const result = await login(passwordInput);
+      const result = await login('admin', passwordInput);
       if (result.error) {
         setShowPasswordError(true);
         setTimeout(() => setShowPasswordError(false), 3000);

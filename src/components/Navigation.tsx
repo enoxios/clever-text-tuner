@@ -36,6 +36,20 @@ const Navigation = () => {
       </div>
       
       <div className="flex items-center gap-3">        
+        <Link to="/admin-settings">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className={path === '/admin-settings' 
+              ? 'bg-primary text-primary-foreground' 
+              : 'text-muted-foreground hover:text-foreground'
+            }
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Einstellungen
+          </Button>
+        </Link>
+        
         <Button 
           variant="outline" 
           size="sm" 
