@@ -79,6 +79,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsAuthenticated(true);
         setCurrentUser(data.user);
         console.log('AuthContext: Login successful');
+        
+        // Redirect to main page after successful login
+        window.location.href = '/lektorat';
+        
         return {};
       }
 
