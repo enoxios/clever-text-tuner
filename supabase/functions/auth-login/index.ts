@@ -101,13 +101,29 @@ serve(async (req) => {
     } catch (bcryptError) {
       console.error('BCrypt error:', bcryptError);
       console.error('BCrypt error details:', JSON.stringify(bcryptError, null, 2));
-      // For admin with known hash, provide fallback
-      if (type === 'admin' && username === 'admin' && password === 'password' && 
-          user.password_hash === '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi') {
-        console.log('Using fallback verification for admin');
-        passwordMatch = true;
-      } else {
-        passwordMatch = false;
+      // Use native bcrypt verification as fallback
+      try {
+        // Use Postgres crypt function verification
+        const { data: cryptCheck, error: cryptError } = await supabase
+          .rpc('verify_password', { 
+            input_password: password, 
+            stored_hash: user.password_hash 
+          });
+        
+        if (!cryptError && cryptCheck) {
+          passwordMatch = true;
+          console.log('Password verified using Postgres crypt');
+        }
+      } catch (cryptFallbackError) {
+        console.error('Crypt fallback error:', cryptFallbackError);
+        // For admin with known hash, provide final fallback
+        if (type === 'admin' && username === 'admin' && password === 'password' && 
+            user.password_hash === '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi') {
+          console.log('Using hardcoded fallback verification for admin');
+          passwordMatch = true;
+        } else {
+          passwordMatch = false;
+        }
       }
     }
 
