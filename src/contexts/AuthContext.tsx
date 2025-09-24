@@ -22,29 +22,16 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<{ username: string; id: string } | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(true); // Always authenticated
+  const [loading, setLoading] = useState(false); // No loading needed
+  const [currentUser, setCurrentUser] = useState<{ username: string; id: string } | null>({
+    username: 'guest',
+    id: 'guest-user'
+  });
 
   useEffect(() => {
-    // Check if user is already authenticated
-    const authData = localStorage.getItem('app-auth-data');
-    console.log('AuthContext: Checking stored auth data:', authData ? 'data exists' : 'no data');
-    
-    if (authData) {
-      try {
-        const parsed = JSON.parse(authData);
-        setIsAuthenticated(true);
-        setCurrentUser(parsed.user);
-        console.log('AuthContext: User authenticated');
-      } catch (error) {
-        console.log('AuthContext: Invalid auth data, clearing');
-        localStorage.removeItem('app-auth-data');
-      }
-    } else {
-      console.log('AuthContext: User not authenticated');
-    }
-    setLoading(false);
+    // No authentication checks needed - always authenticated
+    console.log('AuthContext: Authentication disabled - always authenticated');
   }, []);
 
   const login = async (username: string, password: string) => {

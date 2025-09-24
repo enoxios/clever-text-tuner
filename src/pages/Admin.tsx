@@ -26,19 +26,13 @@ const Admin = () => {
   const [newPassword, setNewPassword] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!loading) {
-      if (!isAuthenticated) {
-        navigate('/lektorat');
-        return;
-      }
-      fetchUsers();
-    }
-  }, [isAuthenticated, loading, navigate]);
+    // Authentication removed - always fetch users
+    fetchUsers();
+  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -143,7 +137,7 @@ const Admin = () => {
     }
   };
 
-  if (loading || isLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />

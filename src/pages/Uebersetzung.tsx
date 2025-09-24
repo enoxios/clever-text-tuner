@@ -30,7 +30,6 @@ interface GlossaryEntry {
 }
 
 const UebersetzungPage = () => {
-  const { isAuthenticated, loading, login } = useAuth();
   const navigate = useNavigate();
   
   // All useState hooks MUST come before any conditional returns
@@ -63,88 +62,9 @@ const UebersetzungPage = () => {
   const [isLargeDocument, setIsLargeDocument] = useState<boolean>(false);
   const [textChunks, setTextChunks] = useState<TextChunk[]>([]);
   const [chunkProgress, setChunkProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
-  const [usernameInput, setUsernameInput] = useState<string>('');
-  const [passwordInput, setPasswordInput] = useState<string>('');
-  const [showPasswordError, setShowPasswordError] = useState<boolean>(false);
+  const [manualInputMode, setManualInputMode] = useState<boolean>(false);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    const handlePasswordSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      const result = await login(usernameInput, passwordInput);
-      if (result.error) {
-        setShowPasswordError(true);
-        setTimeout(() => setShowPasswordError(false), 3000);
-      }
-    };
-
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="card glass-card p-8 rounded-xl shadow-sm max-w-md w-full">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <img 
-              src="/lovable-uploads/de5492db-ff63-4dc7-9286-f72e78d8d16a.png" 
-              alt="GNB Logo" 
-              className="h-10" 
-            />
-            <h1 className="text-2xl font-bold">GNB KI-Übersetzung</h1>
-          </div>
-          
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium mb-2">
-                Benutzername:
-              </label>
-              <input
-                id="username"
-                type="text"
-                value={usernameInput}
-                onChange={(e) => setUsernameInput(e.target.value)}
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-gnb-primary focus:border-transparent"
-                placeholder="Benutzername..."
-                required
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-2">
-                Passwort:
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-gnb-primary focus:border-transparent"
-                placeholder="Passwort..."
-                required
-              />
-            </div>
-            
-            {showPasswordError && (
-              <div className="text-red-600 text-sm">
-                Falsches Passwort. Bitte versuchen Sie es erneut.
-              </div>
-            )}
-            
-            <button
-              type="submit"
-              className="w-full bg-gnb-primary hover:bg-gnb-secondary text-white py-3 px-6 rounded-lg font-medium transition-colors"
-            >
-              Anmelden
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
+  // Authentication removed - direct access to content
 
   const handleApiKeysChange = (openaiKey: string, claudeKey: string) => {
     setOpenaiApiKey(openaiKey);
