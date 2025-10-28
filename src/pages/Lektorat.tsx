@@ -194,16 +194,6 @@ const LektoratPage = () => {
       toast.error('Kein Text zum Lektorieren vorhanden');
       return;
     }
-
-    // Check if we have the required API key for the selected model
-    const isClaudeModel = selectedModel.startsWith('claude-');
-    const requiredKey = isClaudeModel ? claudeApiKey : openaiApiKey;
-    const keyType = isClaudeModel ? 'Claude' : 'OpenAI';
-    
-    if (!requiredKey.trim()) {
-      toast.info(`Bitte geben Sie Ihren ${keyType} API-Schlüssel ein`);
-      return;
-    }
     
     setIsProcessing(true);
     setShowResults(true);
@@ -216,8 +206,6 @@ const LektoratPage = () => {
         
         const { processedChunks, allChanges } = await processAIChunks(
           textChunks,
-          openaiApiKey,
-          claudeApiKey,
           editingMode,
           selectedModel,
           systemMessage,
@@ -248,11 +236,10 @@ const LektoratPage = () => {
         console.log(`Starte Anfrage mit Modell: ${selectedModel}`);
         
         const apiResponse = await callAI(
-          prompt, 
-          openaiApiKey,
-          claudeApiKey,
-          systemMessage, 
+          prompt,
           selectedModel,
+          editingMode,
+          systemMessage,
           glossaryEntries
         );
         
@@ -312,13 +299,6 @@ ${apiResponse.changes}`);
             disabled={isProcessing}
           />
           
-          <div className="mt-4">
-            <ApiKeyManager 
-              selectedModel={selectedModel}
-              onApiKeysChange={handleApiKeysChange}
-              disabled={isProcessing}
-            />
-          </div>
           
           {!file && !manualInputMode ? (
             <div className="mt-6">

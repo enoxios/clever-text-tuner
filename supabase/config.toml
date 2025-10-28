@@ -17,3 +17,12 @@ verify_jwt = false
 
 [functions.manage-api-keys]
 verify_jwt = false
+
+[functions.call-openai]
+verify_jwt = false
+
+[functions.call-claude]
+verify_jwt = false
+
+[functions.manage-global-api-keys]
+verify_jwt = false

@@ -2,22 +2,20 @@ import { callOpenAI, processChunks } from './openAIService';
 import { callClaude, processClaudeChunks } from './claudeService';
 import { toast } from 'sonner';
 
-interface AIResponse {
-  text: string;
-  changes: string;
+export interface GlossaryEntry {
+  term: string;
+  explanation: string;
 }
 
-// Check if a model is a Claude model
+// Helper functions to determine model type
 export const isClaudeModel = (model: string): boolean => {
   return model.startsWith('claude-');
 };
 
-// Check if a model is an OpenAI model
 export const isOpenAIModel = (model: string): boolean => {
   return model.startsWith('gpt-') || model.startsWith('o3-') || model.startsWith('o4-');
 };
 
-// Get the required API key type for a model
 export const getRequiredApiKeyType = (model: string): 'openai' | 'claude' => {
   if (isClaudeModel(model)) {
     return 'claude';
@@ -25,99 +23,78 @@ export const getRequiredApiKeyType = (model: string): 'openai' | 'claude' => {
   return 'openai';
 };
 
-// Main AI service router function
+/**
+ * Main function to call AI models (centralized API key management)
+ */
 export const callAI = async (
   prompt: string,
-  openaiApiKey: string,
-  claudeApiKey: string,
-  customSystemMessage?: string,
-  model: string = 'gpt-4o',
-  glossaryEntries?: { term: string; explanation: string; }[]
-): Promise<AIResponse | null> => {
+  model: string,
+  mode: string,
+  systemMessage: string,
+  glossaryEntries?: GlossaryEntry[]
+) => {
+  console.log(`aiServiceRouter: Calling AI with model ${model}`);
+  
   try {
-    if (isClaudeModel(model)) {
-      console.log('Routing to Claude service for model:', model);
-      
-      if (!claudeApiKey || claudeApiKey.trim() === '') {
-        toast.error('Claude API-Schlüssel erforderlich für dieses Modell');
-        throw new Error('Claude API-Schlüssel fehlt');
-      }
-      
-      return await callClaude(prompt, claudeApiKey, customSystemMessage, model, glossaryEntries);
-    } else if (isOpenAIModel(model)) {
-      console.log('Routing to OpenAI service for model:', model);
-      
-      if (!openaiApiKey || openaiApiKey.trim() === '') {
-        toast.error('OpenAI API-Schlüssel erforderlich für dieses Modell');
-        throw new Error('OpenAI API-Schlüssel fehlt');
-      }
-      
-      return await callOpenAI(prompt, openaiApiKey, customSystemMessage, model, glossaryEntries);
-    } else {
-      throw new Error(`Unbekanntes Modell: ${model}`);
+    if (isOpenAIModel(model)) {
+      return await callOpenAI(prompt, model, systemMessage, glossaryEntries);
+    } else if (isClaudeModel(model)) {
+      return await callClaude(prompt, model, systemMessage, glossaryEntries);
     }
-  } catch (error) {
-    console.error('AI Service Router Error:', error);
     
-    // Fallback logic: If GPT-5 fails, try Claude Sonnet
-    if (model.startsWith('gpt-5-') && claudeApiKey && claudeApiKey.trim() !== '') {
-      console.log('GPT-5 failed, falling back to Claude Sonnet');
+    throw new Error(`Unbekanntes Modell: ${model}`);
+  } catch (error) {
+    console.error('aiServiceRouter: Error calling AI:', error);
+    
+    // If GPT-5 fails, fallback to Claude
+    if (model.startsWith('gpt-5')) {
+      console.log('GPT-5 failed, falling back to Claude Sonnet 4.5');
       toast.info('GPT-5 ist nicht verfügbar, verwende Claude Sonnet als Alternative...');
       
       try {
-        return await callClaude(prompt, claudeApiKey, customSystemMessage, 'claude-sonnet-4-5', glossaryEntries);
+        return await callClaude(prompt, 'claude-sonnet-4-5', systemMessage, glossaryEntries);
       } catch (fallbackError) {
         console.error('Fallback to Claude also failed:', fallbackError);
         toast.error('Sowohl GPT-5 als auch Claude sind nicht verfügbar');
-        return null;
+        throw fallbackError;
       }
     }
     
-    return null;
+    throw error;
   }
 };
 
-// Chunk processing router
+/**
+ * Process document chunks with AI (centralized API key management)
+ */
 export const processAIChunks = async (
-  chunks: { text: string; index: number }[],
-  openaiApiKey: string,
-  claudeApiKey: string,
-  mode: 'standard' | 'nurKorrektur' | 'kochbuch',
+  chunks: Array<{text: string, index: number}>,
+  mode: string,
   model: string,
   systemMessage: string,
-  glossaryEntries?: { term: string; explanation: string; }[],
+  glossaryEntries?: GlossaryEntry[],
   onChunkProgress?: (completed: number, total: number) => void
-): Promise<{ processedChunks: { text: string; index: number }[], allChanges: { text: string; isCategory: boolean }[][] }> => {
+) => {
+  console.log(`aiServiceRouter: Processing ${chunks.length} chunks with model ${model}`);
+  
   try {
-    if (isClaudeModel(model)) {
-      console.log('Routing chunk processing to Claude service for model:', model);
-      
-      if (!claudeApiKey || claudeApiKey.trim() === '') {
-        throw new Error('Claude API-Schlüssel fehlt für Chunk-Verarbeitung');
-      }
-      
-      return await processClaudeChunks(chunks, claudeApiKey, mode, model, systemMessage, glossaryEntries, onChunkProgress);
-    } else if (isOpenAIModel(model)) {
-      console.log('Routing chunk processing to OpenAI service for model:', model);
-      
-      if (!openaiApiKey || openaiApiKey.trim() === '') {
-        throw new Error('OpenAI API-Schlüssel fehlt für Chunk-Verarbeitung');
-      }
-      
-      return await processChunks(chunks, openaiApiKey, mode, model, systemMessage, glossaryEntries, onChunkProgress);
-    } else {
-      throw new Error(`Unbekanntes Modell für Chunk-Verarbeitung: ${model}`);
+    if (isOpenAIModel(model)) {
+      return await processChunks(chunks, mode, model, systemMessage, glossaryEntries, onChunkProgress);
+    } else if (isClaudeModel(model)) {
+      return await processClaudeChunks(chunks, mode, model, systemMessage, glossaryEntries, onChunkProgress);
     }
-  } catch (error) {
-    console.error('AI Chunk Processing Router Error:', error);
     
-    // Fallback logic for chunk processing
-    if (model.startsWith('gpt-5-') && claudeApiKey && claudeApiKey.trim() !== '') {
-      console.log('GPT-5 chunk processing failed, falling back to Claude Sonnet');
+    throw new Error(`Unbekanntes Modell: ${model}`);
+  } catch (error) {
+    console.error('aiServiceRouter: Error processing chunks:', error);
+    
+    // If GPT-5 fails, fallback to Claude
+    if (model.startsWith('gpt-5')) {
+      console.log('GPT-5 failed, falling back to Claude Sonnet 4.5 for chunk processing');
       toast.info('GPT-5 ist nicht verfügbar, verwende Claude Sonnet für die Verarbeitung...');
       
       try {
-        return await processClaudeChunks(chunks, claudeApiKey, mode, 'claude-sonnet-4-5', systemMessage, glossaryEntries, onChunkProgress);
+        return await processClaudeChunks(chunks, mode, 'claude-sonnet-4-5', systemMessage, glossaryEntries, onChunkProgress);
       } catch (fallbackError) {
         console.error('Fallback chunk processing to Claude also failed:', fallbackError);
         throw fallbackError;

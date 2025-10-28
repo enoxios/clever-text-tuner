@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
-  login: (username: string, password: string) => Promise<{ error?: string }>;
+  login: (username: string, password: string, type?: string) => Promise<{ error?: string }>;
   logout: () => void;
   getAuthToken: () => string | null;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ error?: string }>;
@@ -22,19 +22,29 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Always authenticated
-  const [loading, setLoading] = useState(false); // No loading needed
-  const [currentUser, setCurrentUser] = useState<{ username: string; id: string } | null>({
-    username: 'guest',
-    id: 'guest-user'
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<{ username: string; id: string } | null>(null);
 
   useEffect(() => {
-    // No authentication checks needed - always authenticated
-    console.log('AuthContext: Authentication disabled - always authenticated');
+    // Check if user has valid session in localStorage
+    const authData = localStorage.getItem('app-auth-data');
+    if (authData) {
+      try {
+        const parsed = JSON.parse(authData);
+        if (parsed.user && parsed.session) {
+          setIsAuthenticated(true);
+          setCurrentUser(parsed.user);
+        }
+      } catch (error) {
+        console.error('Failed to parse auth data:', error);
+        localStorage.removeItem('app-auth-data');
+      }
+    }
+    setLoading(false);
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string, type: string = 'admin') => {
     try {
       console.log('AuthContext: Attempting login for username:', username);
       
@@ -42,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: { 
           username, 
           password, 
-          type: 'admin' 
+          type
         }
       });
 
@@ -66,9 +76,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsAuthenticated(true);
         setCurrentUser(data.user);
         console.log('AuthContext: Login successful');
-        
-        // Redirect to main page after successful login
-        window.location.href = '/lektorat';
         
         return {};
       }

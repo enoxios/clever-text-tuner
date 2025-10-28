@@ -160,16 +160,6 @@ const UebersetzungPage = () => {
       toast.error('Kein Text zum Übersetzen vorhanden');
       return;
     }
-
-    // Check if we have the required API key for the selected model
-    const isClaudeModel = selectedModel.startsWith('claude-');
-    const requiredKey = isClaudeModel ? claudeApiKey : openaiApiKey;
-    const keyType = isClaudeModel ? 'Claude' : 'OpenAI';
-    
-    if (!requiredKey.trim()) {
-      toast.info(`Bitte geben Sie Ihren ${keyType} API-Schlüssel ein`);
-      return;
-    }
     
     setIsProcessing(true);
     setShowResults(true);
@@ -258,13 +248,6 @@ const UebersetzungPage = () => {
             disabled={isProcessing}
           />
           
-          <div className="mt-4">
-            <ApiKeyManager 
-              selectedModel={selectedModel}
-              onApiKeysChange={handleApiKeysChange}
-              disabled={isProcessing}
-            />
-          </div>
           
           {!file ? (
             <div className="mt-6">

@@ -109,7 +109,7 @@ export const translateText = async (
 Deine Aufgabe ist es, Texte präzise zu übersetzen und dabei kulturelle Nuancen zu berücksichtigen.
 Strukturiere deine Antwort in zwei klar getrennte Teile: "ÜBERSETZTER TEXT:" und "ANMERKUNGEN:".`;
     
-    const apiResponse = await callAI(prompt, openaiApiKey, claudeApiKey, systemMessage, model, glossaryEntries);
+    const apiResponse = await callAI(prompt, model, style, systemMessage, glossaryEntries);
     
     if (!apiResponse) {
       throw new Error('Keine Antwort von der API erhalten');
@@ -213,7 +213,7 @@ Strukturiere deine Antwort in zwei klar getrennte Teile: "ÜBERSETZTER TEXT:" un
       const prompt = generateTranslationPrompt(chunkPrompt, style, sourceLanguage, targetLanguage, model);
       
       // Call the AI service router
-      const response = await callAI(prompt, openaiApiKey, claudeApiKey, systemMessage, model, glossaryEntries);
+      const response = await callAI(prompt, model, style, systemMessage, glossaryEntries);
       
       if (!response) {
         throw new Error(`Fehler bei der Verarbeitung des Textabschnitts ${i+1}`);

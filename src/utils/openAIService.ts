@@ -1,290 +1,72 @@
-import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
-interface OpenAIResponse {
-  text: string;
-  changes: string;
-}
-
-interface OpenAIResponseWithGlossary extends OpenAIResponse {
+export interface OpenAIResponse {
   text: string;
   changes: string;
 }
 
 export const callOpenAI = async (
   prompt: string,
-  apiKey: string,
+  model: string,
   customSystemMessage?: string,
-  model: string = 'gpt-4o',
-  glossaryEntries?: { term: string; explanation: string; }[]
+  glossaryEntries?: Array<{term: string, explanation: string}>
 ): Promise<OpenAIResponse | null> => {
   try {
-    // Standardwert für den System-Message
-    let systemMessage = customSystemMessage || 'Du bist ein professioneller Lektor und hilfst dabei, Texte zu verbessern. Strukturiere deine Antwort in zwei klar getrennte Teile: "LEKTORIERTER TEXT:" und "ÄNDERUNGEN:".';
+    console.log(`Calling call-openai Edge Function with model: ${model}`);
     
-    // Füge Glossar zum System-Message hinzu, wenn vorhanden
-    if (glossaryEntries && glossaryEntries.length > 0) {
-      const glossaryText = glossaryEntries
-        .map(entry => `${entry.term}: ${entry.explanation}`)
-        .join('\n');
-      
-      systemMessage = `${systemMessage}\n\nVerwende folgendes Glossar für die Lektorierung:\n${glossaryText}`;
-    }
-
-    // Log für Debugging
-    console.log('Using model:', model);
-    console.log('Using system message:', systemMessage?.substring(0, 100) + '...');
-    
-    // Validate API key
-    if (!apiKey || apiKey.trim() === '') {
-      throw new Error('API-Schlüssel fehlt');
-    }
-    
-    // Verhindere, dass eine Fehlermeldung als API-Schlüssel verwendet wird
-    if (apiKey.includes('Fehler')) {
-      throw new Error('Ungültiger API-Schlüssel. Bitte geben Sie einen gültigen OpenAI API-Schlüssel ein');
-    }
-    
-    // Create proper headers object
-    const headers = new Headers({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey.trim()}`
-    });
-    
-    // Handle correct model mapping for API calls
-    let apiModel = model;
-    // Map display model names to correct API model names
-    if (model === 'gpt-5-2025-08-07') {
-      apiModel = 'gpt-5-2025-08-07';
-    } else if (model === 'gpt-5-mini-2025-08-07') {
-      apiModel = 'gpt-5-mini-2025-08-07';
-    } else if (model === 'gpt-5-nano-2025-08-07') {
-      apiModel = 'gpt-5-nano-2025-08-07';
-    } else if (model === 'gpt-4.1') {
-      apiModel = 'gpt-4-turbo';
-    } else if (model === 'gpt-4.1-mini') {
-      apiModel = 'gpt-4-turbo-mini';
-    } 
-    // No need to map gpt-4.5-preview as it's already correct for the API
-    
-    console.log('Original model selected:', model);
-    console.log('Mapped API model:', apiModel);
-    
-    // Helper function to determine correct token parameter
-    const isGPT5Model = (modelName: string): boolean => {
-      return modelName.startsWith('gpt-5-') || modelName.includes('gpt-5');
-    };
-
-    // Prepare the request body with model-specific parameters
-    const requestBody: any = {
-      model: apiModel,
-      messages: [
-        {
-          role: 'system',
-          content: systemMessage
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
-    };
-
-    // Set model-specific parameters
-    if (isGPT5Model(apiModel)) {
-      // GPT-5 models don't support temperature parameter and use max_completion_tokens
-      requestBody.max_completion_tokens = 4000;
-      console.log('Using GPT-5 parameters: max_completion_tokens=4000, no temperature');
-    } else {
-      // Older models use max_tokens and temperature
-      requestBody.max_tokens = 4000;
-      requestBody.temperature = 0.7;
-      console.log('Using legacy parameters: max_tokens=4000, temperature=0.7');
-    }
-    
-    console.log('Sending request to OpenAI API...');
-    console.log('Request model:', apiModel);
-    
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(requestBody)
-    });
-
-    // Log the raw response status and headers for debugging
-    console.log('API response status:', response.status);
-    console.log('API response status text:', response.statusText);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: { message: 'Unbekannter Fehler' } }));
-      const errorMessage = errorData.error?.message || `HTTP Fehler: ${response.status} ${response.statusText}`;
-      console.error('API error response:', errorData);
-      throw new Error(`API-Fehler: ${errorMessage}`);
-    }
-
-    const data = await response.json();
-    console.log('API response data received:', data ? 'Yes' : 'No');
-    
-    if (!data || !data.choices || data.choices.length === 0) {
-      console.error('Empty or invalid response from API:', data);
-      throw new Error('Leere oder ungültige Antwort von der API erhalten');
-    }
-    
-    const content = data.choices[0]?.message?.content;
-
-    // Validate content properly
-    if (content === null || content === undefined) {
-      console.error('No content in API response:', data.choices[0]);
-      throw new Error('Keine Textantwort in der API-Antwort gefunden');
-    }
-
-    console.log('Content received length:', content.length);
-    console.log('Content preview:', content.substring(0, 100) + '...');
-    console.log('Raw OpenAI API Response Content (first 500 chars):', content.substring(0, 500));
-    
-    // Handle empty content case
-    if (content.trim() === '') {
-      console.log('Empty content received from API');
-      return {
-        text: 'Es konnte keine Antwort vom Modell generiert werden. Bitte versuchen Sie es mit einem anderen Modell oder einem kürzeren Text.',
-        changes: 'Das KI-Modell hat eine leere Antwort zurückgegeben. Dies kann an einem zu langen Text oder an Einschränkungen des Modells liegen.'
-      };
-    }
-
-    // Teile den Inhalt in Text und Änderungen auf
-    const textMatch = content.match(/LEKTORIERTER TEXT:\s*\n([\s\S]*?)(?=ÄNDERUNGEN:|$)/i);
-    const changesMatch = content.match(/ÄNDERUNGEN:\s*\n([\s\S]*)/i);
-
-    // Log für Debugging
-    console.log('API Antwort erhalten');
-    console.log('Extrahierter Text:', textMatch ? 'Gefunden' : 'Nicht gefunden');
-    console.log('Extrahierte Änderungen:', changesMatch ? 'Gefunden' : 'Nicht gefunden');
-
-    // Enhanced fallback with better change extraction
-    if (!textMatch && !changesMatch) {
-      console.log('LEKTORIERTER TEXT and ÄNDERUNGEN sections not found, returning full content');
-      
-      // Try to extract any meaningful changes from the content
-      let fallbackChanges = 'Die API-Antwort enthielt keine strukturierten Abschnitte mit "LEKTORIERTER TEXT" und "ÄNDERUNGEN".';
-      
-      // Look for any text that might indicate changes
-      const changeKeywords = /(?:verbessert|geändert|korrigiert|angepasst|ersetzt|hinzugefügt|entfernt|überarbeitet)/gi;
-      const potentialChanges = content.match(changeKeywords);
-      
-      if (potentialChanges && potentialChanges.length > 0) {
-        fallbackChanges += `\n\nGefundene Änderungshinweise: ${potentialChanges.join(', ')}`;
-        
-        // Try to extract sentences containing these keywords
-        const sentences = content.split(/[.!?]\s+/).filter(s => changeKeywords.test(s));
-        if (sentences.length > 0) {
-          fallbackChanges += '\n\nMögliche Änderungen:\n' + sentences.slice(0, 5).map(s => `• ${s.trim()}`).join('\n');
-        }
+    const { data, error } = await supabase.functions.invoke('call-openai', {
+      body: { 
+        prompt, 
+        model, 
+        systemMessage: customSystemMessage,
+        glossaryEntries 
       }
-      
-      return {
-        text: content.trim(),
-        changes: fallbackChanges
-      };
+    });
+    
+    if (error) {
+      console.error('OpenAI Edge Function error:', error);
+      throw new Error(error.message || 'Fehler beim Aufrufen der OpenAI Edge Function');
     }
-
-    return {
-      text: textMatch && textMatch[1] ? textMatch[1].trim() : content.trim(),
-      changes: changesMatch && changesMatch[1] ? changesMatch[1].trim() : 'Keine detaillierten Änderungen verfügbar.'
-    };
+    
+    if (!data) {
+      throw new Error('Keine Antwort von der Edge Function erhalten');
+    }
+    
+    return data;
   } catch (error) {
-    console.error('OpenAI API-Fehler:', error);
-    toast.error(`Fehler bei der API-Anfrage: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`);
-    return null;
+    console.error('Error calling OpenAI:', error);
+    throw error;
   }
 };
 
-// New function to process document chunks in sequence
 export const processChunks = async (
-  chunks: { text: string; index: number }[],
-  apiKey: string,
-  mode: 'standard' | 'nurKorrektur' | 'kochbuch',
+  chunks: Array<{text: string, index: number}>,
+  mode: string,
   model: string,
   systemMessage: string,
-  glossaryEntries?: { term: string; explanation: string; }[],
+  glossaryEntries?: Array<{term: string, explanation: string}>,
   onChunkProgress?: (completed: number, total: number) => void
-): Promise<{ processedChunks: { text: string; index: number }[], allChanges: { text: string; isCategory: boolean }[][] }> => {
-  // Validiere den API-Schlüssel bevor wir mit der Verarbeitung beginnen
-  if (!apiKey || apiKey.trim() === '') {
-    throw new Error('API-Schlüssel fehlt');
-  }
+): Promise<{processedChunks: Array<any>, allChanges: Array<any>}> => {
+  const processedChunks = [];
+  const allChanges = [];
   
-  if (apiKey.includes('Fehler')) {
-    throw new Error('Ungültiger API-Schlüssel. Bitte geben Sie einen gültigen OpenAI API-Schlüssel ein');
-  }
-  
-  const processedChunks: { text: string; index: number }[] = [];
-  const allChanges: { text: string; isCategory: boolean }[][] = [];
-  
-  // Process each chunk sequentially
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
+    console.log(`Processing chunk ${i + 1}/${chunks.length}`);
     
-    try {
-      // Generate prompt for this chunk
-      // Wenn es sich nicht um den ersten Chunk handelt, fügen wir einen Hinweis hinzu
-      let chunkPrompt = '';
-      if (i > 0) {
-        chunkPrompt = `Dies ist Teil ${i+1} von ${chunks.length} eines größeren Textes. Lektoriere diesen Teil wie üblich:\n\n${chunk.text}`;
-      } else {
-        chunkPrompt = chunk.text;
+    const result = await callOpenAI(chunk.text, model, systemMessage, glossaryEntries);
+    
+    if (result) {
+      processedChunks.push({ text: result.text, index: chunk.index });
+      if (result.changes) {
+        // Parse changes into array format
+        const changeLines = result.changes.split('\n').filter(line => line.trim());
+        allChanges.push(changeLines.map(line => ({ text: line, isCategory: false })));
       }
-      
-      // Add the model to the prompt to ensure it's being used correctly
-      const prompt = `@${model} ${chunkPrompt}`;
-      console.log(`Processing chunk ${i+1}/${chunks.length} with model: ${model}`);
-      
-      // Call the API
-      const response = await callOpenAI(prompt, apiKey, systemMessage, model, glossaryEntries);
-      
-      if (!response) {
-        throw new Error(`Fehler bei der Verarbeitung des Textabschnitts ${i+1}`);
-      }
-      
-      // Process the response
-      const processedResult = {
-        text: response.text,
-        index: chunk.index,
-        changes: response.changes
-      };
-      
-      // Extract changes
-      const parsedResult = {
-        text: response.text,
-        changes: response.changes
-          .split('\n')
-          .filter(line => line.trim().length > 0)
-          .map(line => {
-            // Check if this is a category line
-            const isCategoryLine = line.match(/^KATEGORIE:|^Kategorie:/i);
-            return {
-              text: isCategoryLine 
-                ? line.replace(/^KATEGORIE:|^Kategorie:/i, '').trim()
-                : line.replace(/^[-•*]\s+|\d+[\.\)]\s+/, '').trim(),
-              isCategory: !!isCategoryLine
-            };
-          })
-      };
-      
-      // Add to processed results
-      processedChunks.push({
-        text: processedResult.text,
-        index: processedResult.index
-      });
-      
-      allChanges.push(parsedResult.changes);
-      
-      // Update progress
-      if (onChunkProgress) {
-        onChunkProgress(i + 1, chunks.length);
-      }
-      
-    } catch (error) {
-      console.error(`Error processing chunk ${i}:`, error);
-      throw new Error(`Fehler bei der Verarbeitung des Textabschnitts ${i+1}: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`);
+    }
+    
+    if (onChunkProgress) {
+      onChunkProgress(i + 1, chunks.length);
     }
   }
   
