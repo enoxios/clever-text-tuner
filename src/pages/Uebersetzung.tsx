@@ -55,8 +55,6 @@ const UebersetzungPage = () => {
   const [translatedText, setTranslatedText] = useState<string>('');
   const [notes, setNotes] = useState<{text: string; isCategory: boolean}[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [openaiApiKey, setOpenaiApiKey] = useState<string>('');
-  const [claudeApiKey, setClaudeApiKey] = useState<string>('');
   const [glossaryEntries, setGlossaryEntries] = useState<GlossaryEntry[]>([]);
   
   const [isLargeDocument, setIsLargeDocument] = useState<boolean>(false);
@@ -64,12 +62,7 @@ const UebersetzungPage = () => {
   const [chunkProgress, setChunkProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
   const [manualInputMode, setManualInputMode] = useState<boolean>(false);
 
-  // Authentication removed - direct access to content
-
-  const handleApiKeysChange = (openaiKey: string, claudeKey: string) => {
-    setOpenaiApiKey(openaiKey);
-    setClaudeApiKey(claudeKey);
-  };
+  // Authentication now required via login
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
@@ -172,8 +165,6 @@ const UebersetzungPage = () => {
         
         const { processedChunks, allNotes } = await processTranslationChunks(
           textChunks,
-          openaiApiKey,
-          claudeApiKey,
           translationStyle,
           sourceLanguage,
           targetLanguage,
@@ -194,8 +185,6 @@ const UebersetzungPage = () => {
       } else {
         const response = await translateText(
           documentText,
-          openaiApiKey,
-          claudeApiKey,
           translationStyle,
           sourceLanguage,
           targetLanguage,

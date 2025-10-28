@@ -59,8 +59,6 @@ const LektoratPage = () => {
   const [editedText, setEditedText] = useState<string>('');
   const [changes, setChanges] = useState<ChangeItem[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [openaiApiKey, setOpenaiApiKey] = useState<string>('');
-  const [claudeApiKey, setClaudeApiKey] = useState<string>('');
   const [glossaryEntries, setGlossaryEntries] = useState<GlossaryEntry[]>([]);
   
   const [isLargeDocument, setIsLargeDocument] = useState<boolean>(false);
@@ -68,12 +66,7 @@ const LektoratPage = () => {
   const [chunkProgress, setChunkProgress] = useState<{ completed: number; total: number }>({ completed: 0, total: 0 });
   const [manualInputMode, setManualInputMode] = useState<boolean>(false);
 
-  // Authentication removed - direct access to content
-
-  const handleApiKeysChange = (openaiKey: string, claudeKey: string) => {
-    setOpenaiApiKey(openaiKey);
-    setClaudeApiKey(claudeKey);
-  };
+  // Authentication now required via login
 
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);

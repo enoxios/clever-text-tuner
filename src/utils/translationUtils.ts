@@ -93,8 +93,6 @@ ${text}`;
  */
 export const translateText = async (
   text: string,
-  openaiApiKey: string,
-  claudeApiKey: string,
   style: 'standard' | 'literary' | 'technical',
   sourceLanguage: string,
   targetLanguage: string,
@@ -169,8 +167,6 @@ export const processTranslationResponse = (
  */
 export const processTranslationChunks = async (
   chunks: TextChunk[],
-  openaiApiKey: string,
-  claudeApiKey: string,
   style: 'standard' | 'literary' | 'technical',
   sourceLanguage: string,
   targetLanguage: string,
@@ -178,19 +174,6 @@ export const processTranslationChunks = async (
   glossaryEntries?: { term: string; explanation: string }[],
   onChunkProgress?: (completed: number, total: number) => void
 ): Promise<{ processedChunks: TextChunk[], allNotes: { text: string; isCategory: boolean }[][] }> => {
-  // Validate the API keys
-  const isClaudeModel = model.startsWith('claude-');
-  const requiredKey = isClaudeModel ? claudeApiKey : openaiApiKey;
-  const keyType = isClaudeModel ? 'Claude' : 'OpenAI';
-  
-  if (!requiredKey || requiredKey.trim() === '') {
-    throw new Error(`${keyType} API-Schlüssel fehlt`);
-  }
-  
-  if (requiredKey.includes('Fehler')) {
-    throw new Error(`Ungültiger ${keyType} API-Schlüssel`);
-  }
-  
   const processedChunks: TextChunk[] = [];
   const allNotes: { text: string; isCategory: boolean }[][] = [];
   
