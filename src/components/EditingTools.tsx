@@ -14,21 +14,9 @@ interface EditingToolsProps {
 const models = [
   // Claude Models (Anthropic) - Recommended for stability
   { 
-    value: 'claude-opus-4-1-20250805', 
-    label: 'Claude 4 Opus (höchste Qualität)', 
-    description: 'Anthropics leistungsstärkstes Modell mit überlegener Denkfähigkeit',
-    provider: 'Anthropic'
-  },
-  { 
-    value: 'claude-sonnet-4-20250514', 
-    label: 'Claude 4 Sonnet (empfohlen)', 
-    description: 'Hochleistungsmodell mit außergewöhnlicher Effizienz und Genauigkeit',
-    provider: 'Anthropic'
-  },
-  { 
-    value: 'claude-3-5-haiku-20241022', 
-    label: 'Claude 3.5 Haiku (schnell)', 
-    description: 'Schnellstes Claude-Modell für effiziente Textbearbeitung',
+    value: 'claude-sonnet-4-5', 
+    label: 'Claude Sonnet 4.5 (empfohlen)', 
+    description: 'Das leistungsfähigste und intelligenteste Modell von Anthropic mit überlegener Denkfähigkeit',
     provider: 'Anthropic'
   },
   
@@ -76,7 +64,7 @@ const EditingTools = ({
   disabled = false 
 }: EditingToolsProps) => {
   const [activeMode, setActiveMode] = useState<'standard' | 'nurKorrektur' | 'kochbuch'>(initialMode);
-  const [activeModel, setActiveModel] = useState('claude-sonnet-4-20250514');
+  const [activeModel, setActiveModel] = useState('claude-sonnet-4-5');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [systemMessage, setSystemMessage] = useState(defaultSystemMessage);
   const [showModeDropdown, setShowModeDropdown] = useState(false);

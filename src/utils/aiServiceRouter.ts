@@ -65,7 +65,7 @@ export const callAI = async (
       toast.info('GPT-5 ist nicht verfügbar, verwende Claude Sonnet als Alternative...');
       
       try {
-        return await callClaude(prompt, claudeApiKey, customSystemMessage, 'claude-sonnet-4-20250514', glossaryEntries);
+        return await callClaude(prompt, claudeApiKey, customSystemMessage, 'claude-sonnet-4-5', glossaryEntries);
       } catch (fallbackError) {
         console.error('Fallback to Claude also failed:', fallbackError);
         toast.error('Sowohl GPT-5 als auch Claude sind nicht verfügbar');
@@ -117,7 +117,7 @@ export const processAIChunks = async (
       toast.info('GPT-5 ist nicht verfügbar, verwende Claude Sonnet für die Verarbeitung...');
       
       try {
-        return await processClaudeChunks(chunks, claudeApiKey, mode, 'claude-sonnet-4-20250514', systemMessage, glossaryEntries, onChunkProgress);
+        return await processClaudeChunks(chunks, claudeApiKey, mode, 'claude-sonnet-4-5', systemMessage, glossaryEntries, onChunkProgress);
       } catch (fallbackError) {
         console.error('Fallback chunk processing to Claude also failed:', fallbackError);
         throw fallbackError;

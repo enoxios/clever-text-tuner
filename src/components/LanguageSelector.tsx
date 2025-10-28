@@ -47,9 +47,7 @@ const styles = [
 
 const models = [
   // Claude Models (Anthropic) - Recommended for stability
-  { value: 'claude-opus-4-1-20250805', label: 'Claude 4 Opus', provider: 'Anthropic' },
-  { value: 'claude-sonnet-4-20250514', label: 'Claude 4 Sonnet (empfohlen)', provider: 'Anthropic' },
-  { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku', provider: 'Anthropic' },
+  { value: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5 (empfohlen)', provider: 'Anthropic' },
   
   // OpenAI Models
   { value: 'gpt-5-2025-08-07', label: 'GPT-5 (experimentell)', provider: 'OpenAI' },
@@ -69,7 +67,7 @@ const LanguageSelector = ({
   disabled = false
 }: LanguageSelectorProps) => {
   const [translationStyle, setTranslationStyle] = useState<string>(initialStyle);
-  const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-20250514');
+  const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-5');
   const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
 
   const handleStyleChange = (value: string) => {

@@ -98,7 +98,7 @@ export const translateText = async (
   style: 'standard' | 'literary' | 'technical',
   sourceLanguage: string,
   targetLanguage: string,
-  model: string = 'claude-sonnet-4-20250514',
+  model: string = 'claude-sonnet-4-5',
   glossaryEntries?: { term: string; explanation: string }[]
 ): Promise<TranslationResponse | null> => {
   try {

@@ -10,7 +10,7 @@ export const callClaude = async (
   prompt: string,
   apiKey: string,
   customSystemMessage?: string,
-  model: string = 'claude-sonnet-4-20250514',
+  model: string = 'claude-sonnet-4-5',
   glossaryEntries?: { term: string; explanation: string; }[]
 ): Promise<ClaudeResponse | null> => {
   try {
