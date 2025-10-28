@@ -87,18 +87,8 @@ Deno.serve(async (req) => {
     
     let passwordMatch = false;
     try {
-      const { data: cryptCheck, error: cryptError } = await supabase
-        .rpc('verify_password', { 
-          input_password: password, 
-          stored_hash: user.password_hash 
-        });
-      
-      if (cryptError) {
-        console.error('Password verification error:', cryptError);
-        throw cryptError;
-      }
-      
-      passwordMatch = cryptCheck === true;
+      const bcrypt = await import('https://deno.land/x/bcrypt@v0.4.1/mod.ts');
+      passwordMatch = await bcrypt.compare(password, user.password_hash);
       console.log('Password match result:', passwordMatch);
     } catch (verifyError) {
       console.error('Verify password error:', verifyError);
