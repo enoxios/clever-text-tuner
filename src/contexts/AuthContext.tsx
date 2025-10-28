@@ -8,7 +8,7 @@ interface AuthContextType {
   logout: () => void;
   getAuthToken: () => string | null;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ error?: string }>;
-  currentUser: { username: string; id: string } | null;
+  currentUser: { username: string; id: string; role?: string } | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,7 +24,7 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<{ username: string; id: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ username: string; id: string; role?: string } | null>(null);
 
   useEffect(() => {
     // Check if user has valid session in localStorage
@@ -34,7 +34,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const parsed = JSON.parse(authData);
         if (parsed.user && parsed.session) {
           setIsAuthenticated(true);
-          setCurrentUser(parsed.user);
+          setCurrentUser({
+            ...parsed.user,
+            role: parsed.user.role || 'user'
+          });
+          console.log('Restored auth state with role:', parsed.user.role);
         }
       } catch (error) {
         console.error('Failed to parse auth data:', error);
@@ -68,14 +72,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data?.user) {
         const authData = {
-          user: data.user,
+          user: {
+            ...data.user,
+            role: data.user.role || 'user'
+          },
           session: data.session
         };
         
         localStorage.setItem('app-auth-data', JSON.stringify(authData));
         setIsAuthenticated(true);
-        setCurrentUser(data.user);
-        console.log('AuthContext: Login successful');
+        setCurrentUser({
+          ...data.user,
+          role: data.user.role || 'user'
+        });
+        console.log('AuthContext: Login successful with role:', data.user.role);
         
         return {};
       }

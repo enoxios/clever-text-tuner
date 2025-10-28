@@ -23,6 +23,3 @@ verify_jwt = true
 
 [functions.call-claude]
 verify_jwt = true
-
-[functions.manage-global-api-keys]
-verify_jwt = true

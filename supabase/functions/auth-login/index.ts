@@ -122,21 +122,74 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Return user data and simple session token
-    const sessionToken = 'admin123'; // Simple token for authenticated users
+    // Get user role from user_roles table
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const userRole = roleData?.role || 'user';
+    console.log(`User ${username} has role: ${userRole}`);
+
+    // Generate JWT token with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email: `${user.id}@internal.app`,
+      options: {
+        data: {
+          user_id: user.id,
+          username: user.username,
+          role: userRole
+        }
+      }
+    });
+
+    if (authError || !authData) {
+      console.error('Failed to generate auth token:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Token-Generierung fehlgeschlagen' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Extract the JWT token from the generated link
+    const url = new URL(authData.properties.action_link);
+    const token = url.searchParams.get('token');
+    
+    if (!token) {
+      console.error('No token found in generated link');
+      return new Response(
+        JSON.stringify({ error: 'Token-Generierung fehlgeschlagen' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log(`Successfully generated JWT token for user: ${username}`);
     
     return new Response(
       JSON.stringify({ 
         success: true,
         user: {
           id: user.id,
-          username: user.username
+          username: user.username,
+          role: userRole
         },
         session: {
-          access_token: sessionToken,
+          access_token: token,
           user: {
             id: user.id,
-            email: `${username}@temp.local`
+            email: `${user.id}@internal.app`,
+            user_metadata: {
+              username: user.username,
+              role: userRole
+            }
           }
         }
       }),
