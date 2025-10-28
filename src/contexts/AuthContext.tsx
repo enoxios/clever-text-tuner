@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = async (username: string, password: string, type: string = 'admin') => {
+  const login = async (username: string, password: string, type: string = 'user') => {
     try {
       console.log('AuthContext: Attempting login for username:', username);
       
@@ -127,7 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: { 
           username: currentUser.username, 
           password: currentPassword, 
-          type: 'admin' 
+          type: 'user' 
         }
       });
 
