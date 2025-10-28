@@ -71,6 +71,8 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log('User found in table:', tableName, 'with ID:', user.id);
+
     // For regular users, check if account is active
     if (type === 'user' && !user.is_active) {
       return new Response(
@@ -82,13 +84,29 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify password using Postgres crypt function
+    // Verify password using Postgres function
     console.log('Verifying password for user:', username);
     
     let passwordMatch = false;
     try {
-      const bcrypt = await import('https://deno.land/x/bcrypt@v0.4.1/mod.ts');
-      passwordMatch = await bcrypt.compare(password, user.password_hash);
+      const { data: cryptCheck, error: cryptError } = await supabase
+        .rpc('verify_password', { 
+          input_password: password, 
+          stored_hash: user.password_hash 
+        });
+      
+      if (cryptError) {
+        console.error('Password verification error:', cryptError);
+        return new Response(
+          JSON.stringify({ error: 'Fehler bei der Passwortprüfung' }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
+      passwordMatch = cryptCheck === true;
       console.log('Password match result:', passwordMatch);
     } catch (verifyError) {
       console.error('Verify password error:', verifyError);
