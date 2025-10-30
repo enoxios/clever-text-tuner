@@ -59,9 +59,33 @@ export const processClaudeChunks = async (
     if (result) {
       processedChunks.push({ text: result.text, index: chunk.index });
       if (result.changes) {
-        // Parse changes into array format
+        // Parse changes with proper category detection
         const changeLines = result.changes.split('\n').filter(line => line.trim());
-        allChanges.push(changeLines.map(line => ({ text: line, isCategory: false })));
+        const parsedChanges = changeLines.map(line => {
+          const trimmedLine = line.trim();
+          
+          // Detect category lines (e.g., "KATEGORIE: Rechtschreibung")
+          const isCategoryLine = trimmedLine.match(/^(?:\*{0,2})?(?:KATEGORIE|Kategorie)(?:\*{0,2})?:/i);
+          
+          if (isCategoryLine) {
+            // Extract category text without "KATEGORIE:" prefix
+            const categoryText = trimmedLine
+              .replace(/^(?:\*{0,2})?(?:KATEGORIE|Kategorie)(?:\*{0,2})?:/i, '')
+              .replace(/\*{1,2}([^*]*?)\*{1,2}/g, '$1')
+              .trim();
+            return { text: categoryText, isCategory: true };
+          } else {
+            // Remove bullet points and markdown from changes
+            const changeText = trimmedLine
+              .replace(/^[-•*\d\.\)]+\s*/, '')
+              .replace(/\*{1,2}([^*]*?)\*{1,2}/g, '$1')
+              .trim();
+            return { text: changeText, isCategory: false };
+          }
+        });
+        
+        console.log(`Chunk ${i + 1}: Parsed ${parsedChanges.length} changes (${parsedChanges.filter(c => c.isCategory).length} categories)`);
+        allChanges.push(parsedChanges);
       }
     }
     
@@ -70,5 +94,6 @@ export const processClaudeChunks = async (
     }
   }
   
+  console.log(`processClaudeChunks completed: ${allChanges.length} change arrays`);
   return { processedChunks, allChanges };
 };
