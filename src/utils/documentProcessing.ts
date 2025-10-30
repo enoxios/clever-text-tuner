@@ -441,6 +441,18 @@ export const mergeChanges = (allChanges: ChangeItem[][]): ChangeItem[] => {
     }
   }
   
+  // Fallback: If no categories found at all, flatten all non-category items
+  if (categoryMap.size === 0) {
+    const flatChanges = allChanges.flat().filter(c => !c.isCategory && c.text.trim().length > 0);
+    if (flatChanges.length > 0) {
+      console.log('mergeChanges fallback: No categories found, using default category with', flatChanges.length, 'items');
+      return [
+        { text: 'Allgemeine Änderungen', isCategory: true },
+        ...flatChanges
+      ];
+    }
+  }
+  
   for (const [category, items] of categoryMap.entries()) {
     mergedChanges.push({
       text: category,

@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { generatePrompt } from './documentProcessing';
 
 export interface ClaudeResponse {
   text: string;
@@ -54,7 +55,9 @@ export const processClaudeChunks = async (
     const chunk = chunks[i];
     console.log(`Processing chunk ${i + 1}/${chunks.length}`);
     
-    const result = await callClaude(chunk.text, model, systemMessage, glossaryEntries);
+    // Use structured prompt for each chunk
+    const chunkPrompt = generatePrompt(chunk.text, mode as 'standard' | 'nurKorrektur' | 'kochbuch', model);
+    const result = await callClaude(chunkPrompt, model, systemMessage, glossaryEntries);
     
     if (result) {
       processedChunks.push({ text: result.text, index: chunk.index });
@@ -84,8 +87,21 @@ export const processClaudeChunks = async (
           }
         });
         
-        console.log(`Chunk ${i + 1}: Parsed ${parsedChanges.length} changes (${parsedChanges.filter(c => c.isCategory).length} categories)`);
-        allChanges.push(parsedChanges);
+        // Add default category if none detected
+        const hasCategory = parsedChanges.some(c => c.isCategory);
+        if (!hasCategory && parsedChanges.length > 0) {
+          const defaultCategory = mode === 'nurKorrektur' 
+            ? 'Rechtschreibung und Grammatik' 
+            : 'Allgemeine Änderungen';
+          console.log(`Chunk ${i + 1}: No categories detected, adding default category: ${defaultCategory}`);
+          parsedChanges.unshift({ text: defaultCategory, isCategory: true });
+        }
+        
+        // Filter empty lines
+        const filteredChanges = parsedChanges.filter(c => c.text.length > 0);
+        
+        console.log(`Chunk ${i + 1}: Parsed ${filteredChanges.length} changes (${filteredChanges.filter(c => c.isCategory).length} categories)`);
+        allChanges.push(filteredChanges);
       }
     }
     
