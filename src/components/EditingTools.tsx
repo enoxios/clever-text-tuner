@@ -12,19 +12,33 @@ interface EditingToolsProps {
 
 // AI Models grouped by provider
 const models = [
-  // Claude Models (Anthropic) - Recommended for stability
+  // OpenAI Models - GPT-4.1 (Newest stable)
+  { 
+    value: 'gpt-4.1-2025-04-14', 
+    label: 'GPT-4.1 (empfohlen)', 
+    description: 'Neuestes stabiles OpenAI-Modell mit zuverlässigen Ergebnissen',
+    provider: 'OpenAI'
+  },
+  { 
+    value: 'gpt-4.1-mini-2025-04-14', 
+    label: 'GPT-4.1 mini (schneller)', 
+    description: 'Schnellere und kostengünstigere GPT-4.1 Version',
+    provider: 'OpenAI'
+  },
+  
+  // Claude Models (Anthropic)
   { 
     value: 'claude-sonnet-4-5', 
-    label: 'Claude Sonnet 4.5 (empfohlen)', 
-    description: 'Das leistungsfähigste und intelligenteste Modell von Anthropic mit überlegener Denkfähigkeit',
+    label: 'Claude Sonnet 4.5', 
+    description: 'Das leistungsfähigste Modell von Anthropic mit überlegener Denkfähigkeit',
     provider: 'Anthropic'
   },
   
-  // OpenAI Models - Experimental GPT-5
+  // OpenAI Models - GPT-5 (Experimental)
   { 
     value: 'gpt-5-2025-08-07', 
     label: 'GPT-5 (experimentell)', 
-    description: 'Neuestes OpenAI-Modell - aktuell instabil, verwende Claude als Alternative',
+    description: 'Neuestes OpenAI-Modell - aktuell instabil',
     provider: 'OpenAI'
   },
   { 
@@ -33,24 +47,12 @@ const models = [
     description: 'Schnellere GPT-5 Version - aktuell instabil',
     provider: 'OpenAI'
   },
-  { 
-    value: 'gpt-5-nano-2025-08-07', 
-    label: 'GPT-5 nano (experimentell)', 
-    description: 'Schnellste GPT-5 Version - aktuell instabil',
-    provider: 'OpenAI'
-  },
   
-  // OpenAI Models - Stable versions
+  // OpenAI Models - Legacy
   { 
     value: 'gpt-4o', 
-    label: 'GPT-4o (bewährt)', 
-    description: 'Bewährtes OpenAI-Modell mit hoher Qualität',
-    provider: 'OpenAI'
-  },
-  { 
-    value: 'gpt-4o-mini', 
-    label: 'GPT-4o mini (schneller)', 
-    description: 'Schnelleres und kostengünstigeres GPT-4 Modell',
+    label: 'GPT-4o (Legacy)', 
+    description: 'Älteres OpenAI-Modell',
     provider: 'OpenAI'
   },
 ];
@@ -64,7 +66,7 @@ const EditingTools = ({
   disabled = false 
 }: EditingToolsProps) => {
   const [activeMode, setActiveMode] = useState<'standard' | 'nurKorrektur' | 'kochbuch'>(initialMode);
-  const [activeModel, setActiveModel] = useState('claude-sonnet-4-5');
+  const [activeModel, setActiveModel] = useState('gpt-4.1-2025-04-14');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [systemMessage, setSystemMessage] = useState(defaultSystemMessage);
   const [showModeDropdown, setShowModeDropdown] = useState(false);
