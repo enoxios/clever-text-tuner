@@ -46,14 +46,13 @@ const styles = [
 ];
 
 const models = [
-  // Claude Models (Anthropic) - Recommended for stability
-  { value: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5 (empfohlen)', provider: 'Anthropic' },
+  // OpenAI Models - GPT-5.1 (Newest flagship)
+  { value: 'gpt-5.1', label: 'GPT-5.1 (empfohlen)', provider: 'OpenAI' },
+  { value: 'gpt-5-mini', label: 'GPT-5 mini (kostengünstig)', provider: 'OpenAI' },
+  { value: 'gpt-5-nano', label: 'GPT-5 nano (schnellste)', provider: 'OpenAI' },
   
-  // OpenAI Models
-  { value: 'gpt-5-2025-08-07', label: 'GPT-5 (experimentell)', provider: 'OpenAI' },
-  { value: 'gpt-5-mini-2025-08-07', label: 'GPT-5 mini (experimentell)', provider: 'OpenAI' },
-  { value: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI' },
-  { value: 'gpt-4o-mini', label: 'GPT-4o mini', provider: 'OpenAI' },
+  // Claude Models (Anthropic)
+  { value: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5', provider: 'Anthropic' },
 ];
 
 const LanguageSelector = ({
@@ -67,7 +66,7 @@ const LanguageSelector = ({
   disabled = false
 }: LanguageSelectorProps) => {
   const [translationStyle, setTranslationStyle] = useState<string>(initialStyle);
-  const [selectedModel, setSelectedModel] = useState<string>('claude-sonnet-4-5');
+  const [selectedModel, setSelectedModel] = useState<string>('gpt-5.1');
   const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
 
   const handleStyleChange = (value: string) => {
