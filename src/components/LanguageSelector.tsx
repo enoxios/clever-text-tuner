@@ -46,8 +46,9 @@ const styles = [
 ];
 
 const models = [
-  // OpenAI Models - GPT-5.1 (Newest flagship)
-  { value: 'gpt-5.1', label: 'GPT-5.1 (empfohlen)', provider: 'OpenAI' },
+  // OpenAI Models - GPT-5.2 (Newest flagship)
+  { value: 'gpt-5.2', label: 'GPT-5.2 (empfohlen)', provider: 'OpenAI' },
+  { value: 'gpt-5.2-pro', label: 'GPT-5.2 Pro (schwierige Aufgaben)', provider: 'OpenAI' },
   { value: 'gpt-5-mini', label: 'GPT-5 mini (kostengünstig)', provider: 'OpenAI' },
   { value: 'gpt-5-nano', label: 'GPT-5 nano (schnellste)', provider: 'OpenAI' },
   
@@ -66,7 +67,7 @@ const LanguageSelector = ({
   disabled = false
 }: LanguageSelectorProps) => {
   const [translationStyle, setTranslationStyle] = useState<string>(initialStyle);
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-5.1');
+  const [selectedModel, setSelectedModel] = useState<string>('gpt-5.2');
   const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
 
   const handleStyleChange = (value: string) => {
