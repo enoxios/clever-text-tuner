@@ -55,8 +55,9 @@ Deno.serve(async (req) => {
     const fullPrompt = prompt + glossaryContext;
 
     // Determine parameters based on model
-    // GPT-5.1 and GPT-5 family use max_completion_tokens
-    // GPT-5.1 with reasoning=none supports temperature
+    // GPT-5.2/5.1 use max_completion_tokens and reasoning parameter
+    // GPT-5.2/5.1 with reasoning=none supports temperature
+    const isGPT52 = model === 'gpt-5.2' || model.startsWith('gpt-5.2-');
     const isGPT51 = model === 'gpt-5.1' || model.startsWith('gpt-5.1-');
     const isGPT5Family = model.startsWith('gpt-5') || model.startsWith('o3-') || model.startsWith('o4-') || model.startsWith('gpt-4.1');
     
@@ -68,10 +69,10 @@ Deno.serve(async (req) => {
       ],
     };
 
-    // GPT-5.1 specific: uses reasoning and text parameters
-    if (isGPT51) {
+    // GPT-5.2 and GPT-5.1: use reasoning and text parameters
+    if (isGPT52 || isGPT51) {
       requestBody.max_completion_tokens = 16000;
-      // GPT-5.1 with reasoning none supports temperature
+      // GPT-5.2/5.1 with reasoning none supports temperature
       requestBody.reasoning = { effort: 'none' };
       requestBody.temperature = 0.7;
     } else if (isGPT5Family) {

@@ -12,11 +12,17 @@ interface EditingToolsProps {
 
 // AI Models grouped by provider
 const models = [
-  // OpenAI Models - GPT-5.1 (Newest flagship)
+  // OpenAI Models - GPT-5.2 (Newest flagship)
   { 
-    value: 'gpt-5.1', 
-    label: 'GPT-5.1 (empfohlen)', 
-    description: 'Neuestes Flaggschiff-Modell von OpenAI - schnell und intelligent',
+    value: 'gpt-5.2', 
+    label: 'GPT-5.2 (empfohlen)', 
+    description: 'Neuestes Flaggschiff-Modell von OpenAI - beste Qualität',
+    provider: 'OpenAI'
+  },
+  { 
+    value: 'gpt-5.2-pro', 
+    label: 'GPT-5.2 Pro (schwierige Aufgaben)', 
+    description: 'Mehr Rechenleistung für komplexe Probleme',
     provider: 'OpenAI'
   },
   { 
@@ -40,21 +46,13 @@ const models = [
     provider: 'Anthropic'
   },
   
-  // OpenAI Models - GPT-5 (Experimental)
-  { 
-    value: 'gpt-5-2025-08-07', 
-    label: 'GPT-5 (experimentell)', 
-    description: 'Neuestes OpenAI-Modell - aktuell instabil',
-    provider: 'OpenAI'
-  },
-  { 
-    value: 'gpt-5-mini-2025-08-07', 
-    label: 'GPT-5 mini (experimentell)', 
-    description: 'Schnellere GPT-5 Version - aktuell instabil',
-    provider: 'OpenAI'
-  },
-  
   // OpenAI Models - Legacy
+  { 
+    value: 'gpt-5.1', 
+    label: 'GPT-5.1 (Legacy)', 
+    description: 'Vorheriges Flaggschiff-Modell',
+    provider: 'OpenAI'
+  },
   { 
     value: 'gpt-4o', 
     label: 'GPT-4o (Legacy)', 
@@ -72,7 +70,7 @@ const EditingTools = ({
   disabled = false 
 }: EditingToolsProps) => {
   const [activeMode, setActiveMode] = useState<'standard' | 'nurKorrektur' | 'kochbuch'>(initialMode);
-  const [activeModel, setActiveModel] = useState('gpt-5.1');
+  const [activeModel, setActiveModel] = useState('gpt-5.2');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [systemMessage, setSystemMessage] = useState(defaultSystemMessage);
   const [showModeDropdown, setShowModeDropdown] = useState(false);
