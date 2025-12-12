@@ -139,14 +139,29 @@ export const processLektoratResponse = (content: string): LektoratResult => {
             isCategory: true
           });
         } else if (trimmedLine.match(/^[-•*]\s+/)) {
+          // Parse "Vorher → Nachher" format
           const changeText = trimmedLine
             .replace(/^[-•*]\s+/, '')
             .replace(/\*{1,2}([^*]*?)\*{1,2}/g, '$1') // Entferne Markdown
             .trim();
-          result.changes.push({
-            text: changeText,
-            isCategory: false
-          });
+          
+          // Format: "Original" → "Neu" (Begründung)
+          const arrowMatch = changeText.match(/["„](.+?)[""] ?→ ?["„](.+?)[""](?:\s*\((.+?)\))?/);
+          if (arrowMatch) {
+            const [, original, replacement, reason] = arrowMatch;
+            const formattedChange = reason 
+              ? `„${original}" → „${replacement}" (${reason})`
+              : `„${original}" → „${replacement}"`;
+            result.changes.push({
+              text: formattedChange,
+              isCategory: false
+            });
+          } else {
+            result.changes.push({
+              text: changeText,
+              isCategory: false
+            });
+          }
         } else if (trimmedLine.match(/^\d+[\.\)]\s+/)) {
           const changeText = trimmedLine
             .replace(/^\d+[\.\)]\s+/, '')
@@ -157,11 +172,23 @@ export const processLektoratResponse = (content: string): LektoratResult => {
             isCategory: false
           });
         } else if (trimmedLine.length > 10) {
-          // NEW: Handle unstructured lines as changes
-          result.changes.push({
-            text: trimmedLine.replace(/\*{1,2}([^*]*?)\*{1,2}/g, '$1'),
-            isCategory: false
-          });
+          // Handle unstructured lines or arrow format without bullet
+          const arrowMatch = trimmedLine.match(/["„](.+?)[""] ?→ ?["„](.+?)[""](?:\s*\((.+?)\))?/);
+          if (arrowMatch) {
+            const [, original, replacement, reason] = arrowMatch;
+            const formattedChange = reason 
+              ? `„${original}" → „${replacement}" (${reason})`
+              : `„${original}" → „${replacement}"`;
+            result.changes.push({
+              text: formattedChange,
+              isCategory: false
+            });
+          } else {
+            result.changes.push({
+              text: trimmedLine.replace(/\*{1,2}([^*]*?)\*{1,2}/g, '$1'),
+              isCategory: false
+            });
+          }
         }
       }
       
@@ -229,142 +256,138 @@ export const processLektoratResponse = (content: string): LektoratResult => {
   return result;
 };
 
-// Sample prompts for the API
+// Sample prompts for the API - Optimized for GPT-5.2
 export const generatePrompt = (text: string, mode: 'standard' | 'nurKorrektur' | 'kochbuch', model: string): string => {
   let promptText = '';
   
   switch (mode) {
     case 'standard':
       promptText = `
-Führe ein umfassendes Lektorat des folgenden Textes durch. 
+Du bist ein erfahrener Verlagslektor. Führe ein umfassendes Lektorat durch.
 
-Fokussiere auf folgende Aspekte:
+PRÜFE SYSTEMATISCH:
 
-1. INHALTLICHE PRÜFUNG
-   - Struktur und Logik: Prüfe, ob der Text gut strukturiert und logisch aufgebaut ist
-   - Kohärenz: Überprüfe Handlungsstränge, Argumentationen oder Gedankengänge auf Nachvollziehbarkeit
+1. MAKROSTRUKTUR
+   - Roter Faden und Textlogik
+   - Absatzgliederung und Übergänge
+   - Argumentationsaufbau
 
-2. SPRACHLICHE ÜBERARBEITUNG
-   - Stil: Optimiere den Schreibstil (passend zu Genre/Zielgruppe), mache verschachtelte Sätze verständlicher
-   - Wortwahl: Ersetze unpassende, redundante oder zu häufig wiederholte Wörter
-   - Ton und Perspektive: Prüfe auf Konsistenz im Ton und in der Erzählperspektive
+2. SATZEBENE
+   - Satzfluss und Lesbarkeit
+   - Variierende Satzanfänge (keine "Dann"-Ketten)
+   - Verschachtelte Sätze vereinfachen
 
-WICHTIG: Verwende im Ergebnistext KEINE Markdown-Formatierung, da dieser später in Word eingefügt wird.
+3. WORTWAHL
+   - Füllwörter entfernen (eigentlich, irgendwie, quasi, halt, eben)
+   - Redundanzen beseitigen
+   - Wortwiederholungen vermeiden
 
-Strukturiere deine Antwort wie folgt:
+4. STIL & TON
+   - Konsistente Erzählperspektive
+   - Passender Ton für Zielgruppe
+   - Aktiv statt Passiv wo möglich
+
+AUSGABEFORMAT (ohne Markdown, für Word):
 
 LEKTORIERTER TEXT:
-[Hier den vollständigen überarbeiteten Text einfügen]
+[Vollständiger überarbeiteter Text]
 
 ÄNDERUNGEN:
-KATEGORIE: Struktur und Logik
-- [Änderung mit Begründung]
-- [Änderung mit Begründung]
+KATEGORIE: Makrostruktur
+- "Originaltext" → "Neuer Text" (Begründung)
 
-KATEGORIE: Stil
-- [Änderung mit Begründung]
-- [Änderung mit Begründung]
+KATEGORIE: Satzebene
+- "Originaltext" → "Neuer Text" (Begründung)
 
 KATEGORIE: Wortwahl
-- [Änderung mit Begründung]
-- [Änderung mit Begründung]
+- "Originaltext" → "Neuer Text" (Begründung)
 
-KATEGORIE: Ton und Perspektive
-- [Änderung mit Begründung]
-- [Änderung mit Begründung]
+KATEGORIE: Stil
+- "Originaltext" → "Neuer Text" (Begründung)
 
-Hier ist der zu lektorierende Text:
+TEXT ZUM LEKTORIEREN:
 
 ${text}`;
       break;
     
     case 'nurKorrektur':
       promptText = `
-Führe eine reine Korrektur von Rechtschreibung und Grammatik des folgenden Textes durch. 
+Du bist ein professioneller Korrektor. Korrigiere NUR Fehler - ändere NICHTS am Stil.
 
-WICHTIG:
-- Korrigiere AUSSCHLIESSLICH Rechtschreibfehler, Grammatikfehler und falsche Zeichensetzung
-- Verändere NICHT den Stil, die Wortwahl oder den Inhalt des Textes
-- Behalte die ursprüngliche Struktur und Formulierung bei
-- Verwende im Ergebnistext KEINE Markdown-Formatierung, da dieser später in Word eingefügt wird
+KORRIGIERE AUSSCHLIESSLICH:
+- Rechtschreibfehler
+- Grammatikfehler  
+- Zeichensetzungsfehler
 
-Strukturiere deine Antwort wie folgt:
+NICHT ÄNDERN:
+- Wortwahl und Formulierungen
+- Satzstruktur und Stil
+- Inhalt und Bedeutung
+
+AUSGABEFORMAT (ohne Markdown, für Word):
 
 LEKTORIERTER TEXT:
-[Hier den vollständigen korrigierten Text einfügen]
+[Vollständiger korrigierter Text]
 
 ÄNDERUNGEN:
-KATEGORIE: Rechtschreibung und Grammatik
-- [Korrektur 1 mit kurzer Begründung]
-- [Korrektur 2 mit kurzer Begründung]
-(usw.)
+KATEGORIE: Rechtschreibung
+- "Fehler" → "Korrektur"
 
-Hier ist der zu lektorierende Text:
+KATEGORIE: Grammatik
+- "Fehler" → "Korrektur"
+
+KATEGORIE: Zeichensetzung
+- "Fehler" → "Korrektur"
+
+TEXT ZUR KORREKTUR:
 
 ${text}`;
       break;
       
     case 'kochbuch':
       promptText = `
-Prüfe und verbessere das folgende Rezept als erfahrener Rezeptredakteur nach diesen Richtlinien:
+Du bist ein erfahrener Rezeptredakteur. Prüfe und verbessere das Rezept.
 
-ZUR ÜBERPRÜFUNG DER ZUTATENLISTEN:
-- Entferne Doppelpunkte nach Überschriften/Zwischenüberschriften
-- Ordne Zutaten in der Reihenfolge, wie sie im Text zuerst erwähnt werden
-- Achte auf korrekte Zuordnung zu Teilrezepten und deren Reihenfolge
-- Korrigiere Rechtschreibung und Grammatik nach Duden
-- Verwende Halbgeviert-Striche bei Mengenangaben (z.B. 1–2)
-- Schreibe Adjektive/Adverbien am Zeilenanfang klein
-- Ergänze fehlende Zutaten mit "XX" als Mengenplatzhalter
-- Zeige Bruchzahlen als Zähler/Nenner (z.B. 1/2)
-- Keine Bullet Points in der Zutatenliste verwenden
-- Wasser nicht in der Zutatenliste, nur im Zubereitungstext erwähnen
+ZUTATENLISTE PRÜFEN:
+- Reihenfolge = Erwähnung im Zubereitungstext
+- Keine Doppelpunkte nach Überschriften
+- Mengenangaben mit Halbgeviert-Strich (1–2)
+- Bruchzahlen als Zähler/Nenner (1/2)
+- Adjektive am Zeilenanfang klein
+- Fehlende Zutaten mit "XX" markieren
+- Kein Wasser in Zutatenliste
+- Keine Bullet Points
 
-ZUR ÜBERPRÜFUNG DER ZUBEREITUNGSTEXTE:
-- Entferne Doppelpunkte nach Überschriften/Zwischenüberschriften
-- Korrigiere Grammatik und Rechtschreibung
-- Ändere "Hitze" zu "Temperatur"
-- Verwende korrekt Halbgeviert-Striche bei von-bis-Angaben
-- Ersetze normale durch französische Anführungszeichen »...«
-- Ändere "Soße" zu "Sauce"
-- Formuliere stichwortartige Sätze zu vollständigen Sätzen
-- Füge Artikel bei jeder Zutat im Text hinzu
-- Teile Zubereitungsschritte in Absätze ohne Nummerierung
-- Verwende Kurzschreibweise für Maßeinheiten (EL, TL, g, kg, °C)
-- Schreibe Zahlen vor Maßeinheiten als Ziffern, sonst ausgeschrieben
-- Beginne jedes Teilrezept mit einleitender Phrase
-- Verwende vielfältigen Wortschatz, vermeide Wortwiederholungen
-- Schreibe "etwa" statt "ca."
+ZUBEREITUNGSTEXT PRÜFEN:
+- "Hitze" → "Temperatur"
+- "Soße" → "Sauce"
+- "ca." → "etwa"
+- "Möhren" → "Karotten"
+- "Nelken" → "Gewürznelken"
+- Normale → französische Anführungszeichen »...«
+- Maßeinheiten: EL, TL, g, kg, °C
+- Zahlen vor Maßeinheiten als Ziffern
+- Vollständige Sätze, keine Stichpunkte
+- Absätze ohne Nummerierung
+- Artikel bei jeder Zutat
+- Vielfältiger Wortschatz
 
-BESONDERE REGELN:
-- Immer "Karotten" statt "Möhren" verwenden
-- Immer "Gewürznelken" statt nur "Nelken" verwenden
-- Bei Singular in der Zutatenliste auch im Text Singular verwenden
-- "Trockenschleudern", "trockenschütteln", "trockentupfen" zusammenschreiben
-
-PRIORITÄT: Die wichtigste Regel ist die korrekte Reihenfolge der Zutaten entsprechend ihrer Erwähnung im Zubereitungstext.
-
-WICHTIG: Verwende im Ergebnistext KEINE Markdown-Formatierung, da dieser später in Word eingefügt wird.
-
-Strukturiere deine Antwort wie folgt:
+AUSGABEFORMAT (ohne Markdown, für Word):
 
 LEKTORIERTER TEXT:
-[Hier den vollständig überarbeiteten Rezepttext einfügen]
+[Vollständiges überarbeitetes Rezept]
 
 ÄNDERUNGEN:
 KATEGORIE: Zutatenliste
-- [Änderung mit Begründung]
-- [Änderung mit Begründung]
+- "Original" → "Neu" (Begründung)
 
 KATEGORIE: Zubereitungstext
-- [Änderung mit Begründung]
-- [Änderung mit Begründung]
+- "Original" → "Neu" (Begründung)
 
 KATEGORIE: Formatierung
-- [Änderung mit Begründung]
-- [Änderung mit Begründung]
+- "Original" → "Neu" (Begründung)
 
-Hier ist das zu lektorierende Rezept:
+REZEPT ZUM LEKTORIEREN:
 
 ${text}`;
       break;
